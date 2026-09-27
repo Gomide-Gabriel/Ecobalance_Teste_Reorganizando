@@ -1,13 +1,32 @@
 const path = require('path');
-require('dotenv').config();
+// Aponta explicitamente para o .env na raiz do projeto (um nível acima de backend/),
+// porque por padrão o dotenv só olha a pasta de onde o comando foi rodado.
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const express = require('express');
 const { engine } = require('express-handlebars');
 const jwt = require('jsonwebtoken');
 const { spawn } = require('child_process');
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 const twilio = require('twilio');
 
 const app = express();
+
+// Conexão com o Postgres (Neon). A DATABASE_URL vem do .env local
+// ou das variáveis de ambiente configuradas no Render.
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false } // a Neon exige conexão SSL
+});
+
+// Rota só pra testar se a conexão com o banco está funcionando
+app.get('/api/health-db', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT NOW() AS agora');
+        res.json({ status: 'ok', conectado_em: result.rows[0].agora });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+});
 
 // Necessário para ler JSON no corpo das requisições (faltava no original)
 app.use(express.json());

@@ -2,10 +2,12 @@
 CREATE DATABASE IF NOT EXISTS ecobalance_ledger;
 USE ecobalance_ledger;
 
+Failed query:
+
 -- 1. Tabela de Setores (Estrutura para Matriz de Leontief)
 -- Define os centros de custo e ramos de atividade (ex: Hardware, Cloud, Automação)
 CREATE TABLE setores (
-    id_setor INT AUTO_INCREMENT PRIMARY KEY,
+    id_setor INT SERIAL  PRIMARY KEY,
     nome_setor VARCHAR(100) NOT NULL,
     codigo_iso VARCHAR(20), -- Referência a normas ISO de Sustentabilidade
     responsavel_esg VARCHAR(100),
