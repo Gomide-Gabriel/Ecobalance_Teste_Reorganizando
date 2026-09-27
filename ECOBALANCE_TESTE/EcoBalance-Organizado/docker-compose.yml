@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  # Serviço do Banco de Dados MySQL
+  db_esg:
+    image: mysql:8.0
+    container_name: mysql_ecobalance
+    restart: always
+    environment:
+      MYSQL_DATABASE: ecobalance_ledger
+      MYSQL_ROOT_PASSWORD: root_password_segura
+    ports:
+      - "3306:3306"
+    volumes:
+      # Executa automaticamente schema.sql e depois seed.sql (em ordem alfabética) na primeira inicialização
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./db/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
+      - mysql_data:/var/lib/mysql
+
+  # Serviço da Aplicação (Node.js + Python)
+  app_ledger:
+    build: .
+    container_name: ecobalance_app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      DB_HOST: db_esg
+      DB_USER: root
+      DB_PASSWORD: root_password_segura
+      DB_NAME: ecobalance_ledger
+      TWILIO_SID: ${TWILIO_SID}
+      TWILIO_TOKEN: ${TWILIO_TOKEN}
+    depends_on:
+      - db_esg
+
+volumes:
+  mysql_data:
