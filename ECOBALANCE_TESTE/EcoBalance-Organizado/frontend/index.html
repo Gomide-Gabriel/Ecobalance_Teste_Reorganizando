@@ -172,13 +172,13 @@
         <nav class="fixed w-full z-50 glass-strong border-b border-emerald-500/20">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between items-center h-16">
-                    <div class="flex items-center space-x-3 cursor-pointer" @click="scrollTo('top')">
+                    <div id="eco-icon" class="flex items-center space-x-3 cursor-pointer" @click="scrollTo('top')">
                         <div class="w-10 h-10 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-lg flex items-center justify-center shadow-lg shadow-emerald-500/30">
                             <i class="fas fa-leaf text-white text-xl"></i>
                         </div>
                         <div>
                             <h1 class="text-xl font-bold gradient-text">EcoBalance Ledger</h1>
-                            <p class="text-xs text-emerald-400/80 font-mono">v2.0.25 | Blockchain Active</p>
+                            <p class="text-xs text-emerald-400/80 font-mono">Blockchain Active</p>
                         </div>
                     </div>
                     
@@ -191,13 +191,27 @@
                             <i class="fas fa-file-pdf"></i>
                             <span class="mobile-hidden">Relatório ESG</span>
                         </button>
+                        
+                        <li class="access-menu" >
+                            <button id="access-btn" @click="accesibility" class="bg-gray-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-lg shadow-emerald-500/30 flex items-center gap-2">
+                                <i class="fa-brands fa-accessible-icon"></i> 
+                                <span class="mobile-hidden">Acessibilidade</span>
+                            </button>
+
+                            <div class="dropdown" role="menu">
+                                <button id="toggle-theme">🌙 Modo Escuro</button>
+                                <button id="change-lang">🌎 Trocar Idioma</button>
+                            </div>
+                         </li>
+                        
+                            
                     </div>
+                
                     
-                    <button @click="mobileMenu = !mobileMenu" class="md:hidden text-gray-300 hover:text-white">
-                        <i class="fas fa-bars text-2xl"></i>
-                    </button>
                 </div>
             </div>
+
+            <script src="accesbilityScript.js" ></script>
             
             <!-- Mobile Menu -->
             <div v-if="mobileMenu" class="md:hidden glass-strong border-t border-gray-700">
