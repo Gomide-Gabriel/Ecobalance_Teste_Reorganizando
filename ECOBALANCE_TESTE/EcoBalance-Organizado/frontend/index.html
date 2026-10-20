@@ -178,7 +178,7 @@
                         </div>
                         <div>
                             <h1 class="text-xl font-bold gradient-text">EcoBalance Ledger</h1>
-                            <p class="text-xs text-emerald-400/80 font-mono">Blockchain Active</p>
+                            <p class="text-xs text-emerald-400/80 font-mono">Protótipo acadêmico</p>
                         </div>
                     </div>
                     
@@ -187,6 +187,7 @@
                         <a @click.prevent="scrollTo('blockchain')" href="#blockchain" class="nav-link text-sm font-medium text-gray-300 hover:text-emerald-400 transition cursor-pointer">Blockchain</a>
                         <a @click.prevent="scrollTo('simulador')" href="#simulador" class="nav-link text-sm font-medium text-gray-300 hover:text-emerald-400 transition cursor-pointer">Simulador ROI</a>
                         <a @click.prevent="scrollTo('dashboard')" href="#dashboard" class="nav-link text-sm font-medium text-gray-300 hover:text-emerald-400 transition cursor-pointer">Dashboard</a>
+                        <a href="/painel.html" class="nav-link text-sm font-medium text-gray-300 hover:text-emerald-400 transition cursor-pointer">Painel</a>
                         <button @click="generateReport" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-lg shadow-emerald-500/30 flex items-center gap-2">
                             <i class="fas fa-file-pdf"></i>
                             <span class="mobile-hidden">Relatório ESG</span>
@@ -221,6 +222,7 @@
                     <a @click.prevent="scrollTo('blockchain'); mobileMenu = false" href="#blockchain" class="block px-3 py-2 text-gray-300 hover:text-emerald-400">Blockchain</a>
                     <a @click.prevent="scrollTo('simulador'); mobileMenu = false" href="#simulador" class="block px-3 py-2 text-gray-300 hover:text-emerald-400">Simulador ROI</a>
                     <a @click.prevent="scrollTo('dashboard'); mobileMenu = false" href="#dashboard" class="block px-3 py-2 text-gray-300 hover:text-emerald-400">Dashboard</a>
+                    <a href="/painel.html" class="block px-3 py-2 text-gray-300 hover:text-emerald-400">Painel</a>
                     <button @click="generateReport" class="w-full text-left px-3 py-2 text-emerald-400">
                         <i class="fas fa-file-pdf mr-2"></i>Gerar Relatório ESG
                     </button>
@@ -237,7 +239,7 @@
                     <div class="space-y-8">
                         <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm font-mono">
                             <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                            ISO 14001 | IFRS S2 | GRI 305 | TI Verde
+                            Normas de referência: ISO 14001 | IFRS S2 | GRI 305
                         </div>
                         
                         <h1 class="text-5xl lg:text-6xl font-bold leading-tight">
@@ -375,15 +377,15 @@
                             </li>
                             <li class="flex items-start gap-2">
                                 <i class="fas fa-check-circle text-emerald-500 mt-1"></i>
-                                <span>Blockchain imutável para auditoria</span>
+                                <span>Log encadeado por hash SHA-256 para auditoria</span>
                             </li>
                             <li class="flex items-start gap-2">
                                 <i class="fas fa-check-circle text-emerald-500 mt-1"></i>
-                                <span>Rastreabilidade completa GRI 305</span>
+                                <span>Rastreabilidade dos cálculos realizados</span>
                             </li>
                             <li class="flex items-start gap-2">
                                 <i class="fas fa-check-circle text-emerald-500 mt-1"></i>
-                                <span>Conformidade total IFRS S2 & ISO 14001</span>
+                                <span>IFRS S2 e ISO 14001 como normas de referência</span>
                             </li>
                         </ul>
                     </div>
@@ -539,10 +541,10 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                 <div class="text-center mb-12">
                     <span class="text-purple-400 font-mono text-sm tracking-wider">RASTREABILIDADE</span>
-                    <h2 class="text-4xl font-bold mt-2 mb-4">Blockchain Ledger Imutável</h2>
+                    <h2 class="text-4xl font-bold mt-2 mb-4">Ledger Encadeado por Hash</h2>
                     <p class="text-gray-400 max-w-2xl mx-auto">
-                        Cada crédito de carbono e resíduo eletrônico registrado em rede distribuída. 
-                        Auditoria digital automática conforme normas ISO.
+                        Cada cálculo de equilíbrio é registrado em um log encadeado por hash SHA-256, sem rede distribuída. 
+                        O Auditor aprova ou rejeita cada registro. Os blocos exibidos aqui são ilustrativos.
                     </p>
                 </div>
 
@@ -587,7 +589,7 @@
                     <!-- Status da Rede -->
                     <div class="space-y-6">
                         <div class="glass rounded-2xl p-6 border border-purple-500/20">
-                            <h4 class="font-semibold text-purple-400 mb-4">Status da Rede</h4>
+                            <h4 class="font-semibold text-purple-400 mb-4">Status da Rede (simulado)</h4>
                             <div class="space-y-4">
                                 <div class="flex items-center justify-between p-3 bg-dark-light rounded-lg">
                                     <div class="flex items-center gap-2">
@@ -614,7 +616,7 @@
                         </div>
 
                         <div class="glass rounded-2xl p-6 border border-emerald-500/20">
-                            <h4 class="font-semibold text-emerald-400 mb-4">Certificações Ativas</h4>
+                            <h4 class="font-semibold text-emerald-400 mb-4">Normas de Referência</h4>
                             <div class="space-y-2">
                                 <div class="flex items-center gap-2 text-sm text-gray-300">
                                     <i class="fas fa-certificate text-emerald-500"></i>
@@ -636,9 +638,9 @@
                         </div>
 
                         <div class="glass rounded-2xl p-6 border border-emerald-500/20 text-center">
-                            <div class="text-3xl font-bold text-emerald-400 mb-1">100%</div>
-                            <div class="text-sm text-gray-400">Auditável</div>
-                            <div class="text-xs text-gray-500 mt-2">Zero alterações não autorizadas desde 2015</div>
+                            <div class="text-3xl font-bold text-emerald-400 mb-1">SHA-256</div>
+                            <div class="text-sm text-gray-400">Integridade verificável</div>
+                            <div class="text-xs text-gray-500 mt-2">Confere o encadeamento dos hashes dos logs</div>
                         </div>
                     </div>
                 </div>
@@ -792,7 +794,7 @@
                     <h2 class="text-4xl font-bold mt-2 mb-4">Dashboard ESG 2015-2025</h2>
                     <p class="text-gray-400 max-w-2xl mx-auto">
                         Análise comparativa de desempenho utilizando decomposição estrutural. 
-                        Previsão de resiliência climática conforme IFRS S2.
+                        Indicadores ilustrativos, sem dados reais, com a IFRS S2 como referência.
                     </p>
                 </div>
 
@@ -898,33 +900,34 @@
         <section class="py-20 relative overflow-hidden">
             <div class="absolute inset-0 bg-gradient-to-r from-emerald-900/40 via-purple-900/40 to-emerald-900/40"></div>
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-                <h2 class="text-4xl font-bold mb-6">Pronto para o Mercado de Capitais</h2>
+                <h2 class="text-4xl font-bold mb-6">Protótipo em Evolução</h2>
                 <p class="text-xl text-gray-400 mb-8">
-                    O EcoBalance Ledger está dockerizado e pronto para implementação em larga escala. 
+                    O EcoBalance Ledger é um protótipo acadêmico em desenvolvimento. 
                     Unimos contabilidade de custos, TI Verde e ciência econômica em uma única interface.
                 </p>
                 
                 <div class="flex flex-wrap justify-center gap-4 mb-12">
                     <div class="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
-                        <i class="fab fa-docker"></i>
-                        <span class="text-sm">Docker Ready</span>
+                        <i class="fab fa-node-js"></i>
+                        <span class="text-sm">Node.js + Express</span>
                     </div>
                     <div class="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400">
                         <i class="fas fa-database"></i>
-                        <span class="text-sm">MySQL 8.0</span>
+                        <span class="text-sm">PostgreSQL (Neon)</span>
                     </div>
                     <div class="flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-400">
                         <i class="fas fa-link"></i>
-                        <span class="text-sm">Blockchain</span>
+                        <span class="text-sm">Log com hash SHA-256</span>
                     </div>
                     <div class="flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-400">
-                        <i class="fas fa-bell"></i>
-                        <span class="text-sm">Twilio Alerts</span>
+                        <i class="fas fa-user-shield"></i>
+                        <span class="text-sm">Acesso por perfil (JWT)</span>
                     </div>
                 </div>
-
+            
+            <!--
                 <div class="glass rounded-2xl p-8 border border-emerald-500/20 inline-block max-w-full">
-                    <div class="text-sm text-gray-400 mb-4">Repositório Docker/GitHub</div>
+                    <div class="text-sm text-gray-400 mb-4">Repositório GitHub</div>
                     <div class="flex items-center gap-4 flex-wrap justify-center">
                         <div class="w-24 h-24 bg-white rounded-lg p-2 flex-shrink-0">
                             <div class="w-full h-full bg-gradient-to-br from-emerald-500 to-blue-500 rounded flex items-center justify-center text-white text-xs font-mono">
@@ -934,15 +937,17 @@
                         <div class="text-left">
                             <div class="text-emerald-400 font-mono text-sm mb-1">git clone</div>
                             <div class="text-white font-mono text-xs bg-dark-light px-3 py-2 rounded border border-gray-700 break-all">
-                                github.com/ecobalance/ledger
+                                github.com/Gomide-Gabriel/Ecobalance_Teste_Reorganizando
                             </div>
                             <div class="mt-2 text-xs text-gray-500">
                                 <i class="fas fa-download mr-1"></i>
-                                2.5k downloads | v2.0.25
+                                Código-fonte público
                             </div>
                         </div>
                     </div>
                 </div>
+
+            -->
             </div>
         </section>
 
@@ -995,10 +1000,6 @@
                                 <span>adriano.rodrigues365@outlook.com</span>
                             </li>
                             <li class="flex items-center gap-2">
-                                <i class="fas fa-phone text-emerald-500"></i>
-                                <span>(11) 97108-0431</span>
-                            </li>
-                            <li class="flex items-center gap-2">
                                 <i class="fas fa-map-marker-alt text-emerald-500"></i>
                                 <span>São Paulo, SP - Brasil</span>
                             </li>
@@ -1017,7 +1018,7 @@
                         </span>
                         <span class="flex items-center gap-1">
                             <i class="fas fa-database text-emerald-500"></i>
-                            MySQL 8.0
+                            PostgreSQL (Neon)
                         </span>
                         <span class="flex items-center gap-1">
                             <i class="fas fa-server text-emerald-500"></i>
@@ -1385,7 +1386,7 @@
                         
                         doc.setFontSize(12);
                         doc.text('Período: 2015-2025', 20, 50);
-                        doc.text('Conformidade: ISO 14001 | IFRS S2 | GRI 305', 20, 60);
+                        doc.text('Normas de referência: ISO 14001 | IFRS S2 | GRI 305', 20, 60);
                         
                         doc.setFontSize(14);
                         doc.text('Indicadores Principais:', 20, 80);
