@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel · EcoBalance Ledger</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #f8fafc; min-height: 100vh; }
+  [v-cloak] { display: none; }
+  .card { background: rgba(255,255,255,.05); border: 1px solid rgba(148,163,184,.2); border-radius: .75rem; }
+  input:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid #34d399; outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div id="painel" v-cloak class="max-w-4xl mx-auto px-4 py-8">
+
+  <header class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-2xl font-bold text-emerald-400">EcoBalance Ledger</h1>
+      <p class="text-sm text-gray-400">Painel de operação</p>
+    </div>
+    <div class="flex items-center gap-4 text-sm">
+      <a href="/" class="text-gray-400 hover:text-emerald-400">Voltar ao site</a>
+      <template v-if="logado">
+        <span class="px-2 py-1 rounded bg-emerald-900/50 text-emerald-300">{{ perfil || 'perfil desconhecido' }}</span>
+        <button @click="sair" class="text-gray-300 hover:text-white underline">Sair</button>
+      </template>
+    </div>
+  </header>
+
+  <!-- Login -->
+  <section v-if="!logado" class="card p-6 max-w-md">
+    <h2 class="text-lg font-semibold mb-4">Entrar</h2>
+    <div class="space-y-3">
+      <label class="block text-sm">E-mail
+        <input v-model="email" type="email" autocomplete="username" @keyup.enter="entrar"
+               class="mt-1 w-full px-3 py-2 rounded bg-dark border border-gray-600 text-white" style="background:#0f172a">
+      </label>
+      <label class="block text-sm">Senha
+        <input v-model="senha" type="password" autocomplete="current-password" @keyup.enter="entrar"
+               class="mt-1 w-full px-3 py-2 rounded border border-gray-600 text-white" style="background:#0f172a">
+      </label>
+      <button @click="entrar" :disabled="carregando || !email || !senha"
+              class="w-full py-2 rounded font-medium bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50">
+        {{ carregando ? 'Entrando...' : 'Entrar' }}
+      </button>
+    </div>
+  </section>
+
+  <!-- Abas -->
+  <nav v-if="logado" class="flex gap-2 mb-4 text-sm">
+    <button @click="aba = 'setores'; erro = ''" :class="aba === 'setores' ? 'bg-emerald-700 text-white' : 'text-gray-300 hover:text-white'" class="px-3 py-1.5 rounded">Setores</button>
+    <button v-if="ehAnalista" @click="aba = 'calcular'; erro = ''" :class="aba === 'calcular' ? 'bg-emerald-700 text-white' : 'text-gray-300 hover:text-white'" class="px-3 py-1.5 rounded">Calcular</button>
+    <button @click="abrirLogs" :class="aba === 'logs' ? 'bg-emerald-700 text-white' : 'text-gray-300 hover:text-white'" class="px-3 py-1.5 rounded">Logs</button>
+  </nav>
+
+  <!-- Setores -->
+  <section v-if="logado && aba === 'setores'" class="card p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-semibold">Setores</h2>
+      <button @click="recarregar" :disabled="carregando" class="text-sm text-emerald-400 hover:text-emerald-300 disabled:opacity-50">
+        {{ carregando ? 'Carregando...' : 'Atualizar lista' }}
+      </button>
+    </div>
+    <div class="overflow-x-auto">
+      <table v-if="setores.length" class="w-full text-sm text-left">
+        <thead>
+          <tr class="border-b border-gray-600 text-gray-400">
+            <th v-for="c in colunas" :key="c" class="py-2 pr-4 font-medium">{{ c.replace(/_/g, ' ') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(s, i) in setores" :key="i" class="border-b border-gray-700/60">
+            <td v-for="c in colunas" :key="c" class="py-2 pr-4">{{ s[c] }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p v-else-if="!carregando" class="text-gray-400 text-sm">Nenhum setor cadastrado.</p>
+    </div>
+  </section>
+
+  <!-- Calcular (só Analista) -->
+  <section v-if="logado && aba === 'calcular' && ehAnalista" class="card p-6">
+    <h2 class="text-lg font-semibold mb-1">Calcular equilíbrio de Leontief</h2>
+    <p class="text-sm text-gray-400 mb-4">Informe a demanda final de cada setor. Setores em branco contam como zero. Cada cálculo grava uma simulação e um log de auditoria no banco.</p>
+    <label class="block text-sm mb-4">Ano de referência
+      <input v-model.number="ano" type="number" class="mt-1 w-32 px-3 py-2 rounded border border-gray-600 text-white" style="background:#0f172a">
+    </label>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+      <label v-for="s in setores" :key="s[idKey]" class="block text-sm">{{ s[nomeKey] }}
+        <input v-model="demanda[s[idKey]]" type="number" min="0" step="any" class="mt-1 w-full px-3 py-2 rounded border border-gray-600 text-white" style="background:#0f172a">
+      </label>
+    </div>
+    <button @click="calcular" :disabled="carregando" class="px-4 py-2 rounded font-medium bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50">
+      {{ carregando ? 'Calculando...' : 'Calcular' }}
+    </button>
+
+    <div v-if="resultado" class="mt-6">
+      <h3 class="font-semibold mb-2">Resultado</h3>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead>
+            <tr class="border-b border-gray-600 text-gray-400">
+              <th class="py-2 pr-4 font-medium">Setor</th>
+              <th class="py-2 font-medium">Produção total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(v, id) in resultado.producao_total" :key="id" class="border-b border-gray-700/60">
+              <td class="py-2 pr-4">{{ nomeDoSetor(id) }}</td>
+              <td class="py-2">{{ Number(v).toFixed(4) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-4 text-sm space-y-1 text-gray-300">
+        <div>Raio espectral: {{ Number(resultado.raio_espectral).toFixed(4) }} (o servidor exige valor menor que 1)</div>
+        <div>Simulação nº {{ resultado.id_simulacao }}, log nº {{ resultado.id_log }}, status PENDENTE</div>
+        <div class="break-all font-mono text-xs text-gray-400">Hash: {{ resultado.hash_atual }}</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Logs -->
+  <section v-if="logado && aba === 'logs'" class="card p-6">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+      <h2 class="text-lg font-semibold">Logs de auditoria</h2>
+      <div class="flex items-center gap-3 text-sm">
+        <label>Status
+          <select v-model="filtro" @change="recarregarLogs" class="ml-1 px-2 py-1 rounded border border-gray-600 text-white" style="background:#0f172a">
+            <option value="">Todos</option>
+            <option>PENDENTE</option>
+            <option>APROVADO</option>
+            <option>REJEITADO</option>
+          </select>
+        </label>
+        <button v-if="podeVerificar" @click="verificarCadeia" :disabled="carregando"
+                class="px-3 py-1.5 rounded font-medium bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50">Verificar cadeia</button>
+      </div>
+    </div>
+
+    <div v-if="verificacao" role="status"
+         :class="verificacao.ok ? 'border-emerald-600/60 bg-emerald-900/30 text-emerald-200' : 'border-red-700/50 bg-red-900/30 text-red-200'"
+         class="mb-3 text-sm border rounded px-3 py-2">
+      <template v-if="verificacao.ok">Cadeia íntegra: {{ verificacao.logs_verificados }} logs verificados.</template>
+      <template v-else>Cadeia inconsistente: {{ JSON.stringify(verificacao) }}</template>
+    </div>
+    <p v-if="podeVerificar" class="text-xs text-gray-500 mb-3">
+      A verificação confere só o encadeamento dos hashes. O hash não inclui o status, e apagar o último log não seria detectado.
+    </p>
+
+    <div class="overflow-x-auto">
+      <table v-if="logs.length" class="w-full text-sm text-left">
+        <thead>
+          <tr class="border-b border-gray-600 text-gray-400">
+            <th class="py-2 pr-4 font-medium">Log</th>
+            <th class="py-2 pr-4 font-medium">Simulação</th>
+            <th class="py-2 pr-4 font-medium">Status</th>
+            <th class="py-2 pr-4 font-medium">Criado em</th>
+            <th class="py-2 pr-4 font-medium">Hash</th>
+            <th v-if="ehAuditor" class="py-2 font-medium">Decisão</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="l in logs" :key="l.id_log" class="border-b border-gray-700/60">
+            <td class="py-2 pr-4">{{ l.id_log }}</td>
+            <td class="py-2 pr-4">{{ l.id_simulacao }}</td>
+            <td class="py-2 pr-4"><span :class="corStatus(l.status_auditoria)" class="px-2 py-0.5 rounded text-xs">{{ l.status_auditoria }}</span></td>
+            <td class="py-2 pr-4 whitespace-nowrap">{{ fmtData(l.criado_em) }}</td>
+            <td class="py-2 pr-4 font-mono text-xs text-gray-400" :title="l.hash_atual">{{ (l.hash_atual || '').slice(0, 12) }}...</td>
+            <td v-if="ehAuditor" class="py-2 whitespace-nowrap">
+              <template v-if="l.status_auditoria === 'PENDENTE'">
+                <button @click="decidir(l, 'APROVADO')" :disabled="carregando" class="px-2 py-1 mr-1 rounded bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50">Aprovar</button>
+                <button @click="decidir(l, 'REJEITADO')" :disabled="carregando" class="px-2 py-1 rounded bg-red-800 hover:bg-red-700 disabled:opacity-50">Rejeitar</button>
+              </template>
+              <span v-else class="text-gray-500">Decidido</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p v-else-if="!carregando" class="text-gray-400 text-sm">Nenhum log encontrado.</p>
+    </div>
+  </section>
+
+  <p v-if="carregando" class="mt-4 text-sm text-gray-400">
+    Conectando. O servidor gratuito pode levar até 1 minuto para acordar.
+  </p>
+  <p v-if="erro" role="alert" class="mt-4 text-sm text-red-300 bg-red-900/30 border border-red-700/50 rounded px-3 py-2">{{ erro }}</p>
+
+  <footer class="mt-10 text-xs text-gray-500">
+    Protótipo acadêmico com dados ilustrativos. Os coeficientes são premissas, não dados oficiais.
+  </footer>
+</div>
+
+<script>
+const { createApp, ref, computed, onMounted } = Vue;
+
+createApp({
+  setup() {
+    const token = ref(sessionStorage.getItem('eco_token') || '');
+    const email = ref('');
+    const senha = ref('');
+    const carregando = ref(false);
+    const erro = ref('');
+    const setores = ref([]);
+    const aba = ref('setores');
+    const ano = ref(2025);
+    const demanda = ref({});
+    const resultado = ref(null);
+    const logs = ref([]);
+    const filtro = ref('');
+    const verificacao = ref(null);
+
+    const logado = computed(() => !!token.value);
+
+    // Só para exibir o perfil na tela. Quem autoriza de verdade é o servidor.
+    const perfil = computed(() => {
+      try {
+        const p = token.value.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+        return JSON.parse(atob(p)).perfil || '';
+      } catch { return ''; }
+    });
+
+    const colunas = computed(() => Object.keys(setores.value[0] || {}));
+    const ehAnalista = computed(() => perfil.value.toUpperCase() === 'ANALISTA');
+    const ehAuditor = computed(() => perfil.value.toUpperCase() === 'AUDITOR');
+    const podeVerificar = computed(() => ehAnalista.value || ehAuditor.value);
+    // Infere as colunas sem depender do nome exato: id = primeira coluna que começa com "id"; nome = primeira coluna de texto.
+    const idKey = computed(() => colunas.value.find(k => /^id/i.test(k)) || colunas.value[0]);
+    const nomeKey = computed(() => colunas.value.find(k => typeof setores.value[0][k] === 'string') || idKey.value);
+
+    async function api(caminho, opcoes = {}) {
+      const headers = { 'Content-Type': 'application/json' };
+      if (token.value) headers.Authorization = 'Bearer ' + token.value;
+      const resp = await fetch(caminho, { ...opcoes, headers });
+      let dados = null;
+      try { dados = await resp.json(); } catch {}
+      if (!resp.ok) {
+        if (resp.status === 401 && token.value) {
+          sair();
+          throw new Error('Sessão expirada. Entre de novo.');
+        }
+        const msg = dados && (dados.erro || dados.error || dados.mensagem || dados.message);
+        throw new Error(msg || 'Erro ' + resp.status);
+      }
+      return dados;
+    }
+
+    async function carregarSetores() {
+      const d = await api('/api/setores');
+      setores.value = Array.isArray(d) ? d : (Object.values(d || {}).find(Array.isArray) || []);
+    }
+
+    async function entrar() {
+      erro.value = '';
+      carregando.value = true;
+      try {
+        const d = await api('/api/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ email: email.value.trim(), senha: senha.value })
+        });
+        token.value = d.token;
+        sessionStorage.setItem('eco_token', d.token);
+        senha.value = '';
+        await carregarSetores();
+      } catch (e) {
+        erro.value = e.message;
+      } finally {
+        carregando.value = false;
+      }
+    }
+
+    async function recarregar() {
+      erro.value = '';
+      carregando.value = true;
+      try { await carregarSetores(); }
+      catch (e) { erro.value = e.message; }
+      finally { carregando.value = false; }
+    }
+
+    function nomeDoSetor(id) {
+      const s = setores.value.find(x => String(x[idKey.value]) === String(id));
+      return s ? s[nomeKey.value] : 'Setor ' + id;
+    }
+
+    async function calcular() {
+      erro.value = '';
+      const dem = {};
+      for (const [id, v] of Object.entries(demanda.value)) {
+        if (v !== '' && v !== null && v !== undefined) dem[id] = Number(v);
+      }
+      if (!Object.keys(dem).length) {
+        erro.value = 'Informe a demanda de pelo menos um setor.';
+        return;
+      }
+      carregando.value = true;
+      try {
+        resultado.value = await api('/api/calculate-equilibrium', {
+          method: 'POST',
+          body: JSON.stringify({ ano: ano.value, demanda: dem })
+        });
+      } catch (e) {
+        erro.value = e.message;
+        resultado.value = null;
+      } finally {
+        carregando.value = false;
+      }
+    }
+
+    const fmtData = (d) => (d ? new Date(d).toLocaleString('pt-BR') : '');
+    const corStatus = (st) => ({
+      PENDENTE: 'bg-yellow-900/50 text-yellow-300',
+      APROVADO: 'bg-emerald-900/50 text-emerald-300',
+      REJEITADO: 'bg-red-900/50 text-red-300'
+    }[st] || 'bg-gray-700 text-gray-300');
+
+    async function carregarLogs() {
+      const q = filtro.value ? '?status=' + encodeURIComponent(filtro.value) : '';
+      const d = await api('/api/logs' + q);
+      logs.value = Array.isArray(d) ? d : (Object.values(d || {}).find(Array.isArray) || []);
+    }
+
+    async function recarregarLogs() {
+      erro.value = '';
+      carregando.value = true;
+      try { await carregarLogs(); }
+      catch (e) { erro.value = e.message; }
+      finally { carregando.value = false; }
+    }
+
+    async function abrirLogs() {
+      aba.value = 'logs';
+      await recarregarLogs();
+    }
+
+    async function verificarCadeia() {
+      erro.value = '';
+      verificacao.value = null;
+      carregando.value = true;
+      try { verificacao.value = await api('/api/logs/verificar'); }
+      catch (e) { erro.value = e.message; }
+      finally { carregando.value = false; }
+    }
+
+    async function decidir(l, status) {
+      const verbo = status === 'APROVADO' ? 'Aprovar' : 'Rejeitar';
+      if (!confirm(verbo + ' o log nº ' + l.id_log + '? A decisão não pode ser desfeita.')) return;
+      erro.value = '';
+      carregando.value = true;
+      try {
+        await api('/api/logs/' + l.id_log + '/status', {
+          method: 'PATCH',
+          body: JSON.stringify({ status_auditoria: status })
+        });
+        await carregarLogs();
+      } catch (e) {
+        erro.value = e.message;
+      } finally {
+        carregando.value = false;
+      }
+    }
+
+    function sair() {
+      token.value = '';
+      sessionStorage.removeItem('eco_token');
+      setores.value = [];
+      aba.value = 'setores';
+      resultado.value = null;
+      demanda.value = {};
+      logs.value = [];
+      filtro.value = '';
+      verificacao.value = null;
+    }
+
+    onMounted(() => { if (token.value) recarregar(); });
+
+    return { email, senha, carregando, erro, setores, colunas, logado, perfil, entrar, recarregar, sair,
+             aba, ano, demanda, resultado, ehAnalista, idKey, nomeKey, calcular, nomeDoSetor,
+             logs, filtro, verificacao, ehAuditor, podeVerificar, fmtData, corStatus,
+             recarregarLogs, abrirLogs, verificarCadeia, decidir };
+  }
+}).mount('#painel');
+</script>
+</body>
+</html>
