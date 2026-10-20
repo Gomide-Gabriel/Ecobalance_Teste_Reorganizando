@@ -9,7 +9,6 @@ const { engine } = require('express-handlebars');
 const jwt = require('jsonwebtoken');
 const { spawn } = require('child_process');
 const { Pool } = require('pg');
-const twilio = require('twilio');
 
 const app = express();
 
