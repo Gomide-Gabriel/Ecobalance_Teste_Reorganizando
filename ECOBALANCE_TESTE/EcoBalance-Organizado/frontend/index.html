@@ -56,6 +56,64 @@
         }
     </script>
 
+    <!-- Acessibilidade: tema claro/escuro + tamanho da fonte (preferências salvas no navegador) -->
+    <script>
+    (function () {
+        var root = document.documentElement;
+        try {
+            root.setAttribute('data-theme', localStorage.getItem('eb-theme') === 'light' ? 'light' : 'dark');
+            var f = parseInt(localStorage.getItem('eb-font'), 10);
+            if (f >= 90 && f <= 140) root.style.fontSize = f + '%';
+        } catch (e) { root.setAttribute('data-theme', 'dark'); }
+
+        window.ebChartTick = function () { return root.getAttribute('data-theme') === 'light' ? '#475569' : '#9ca3af'; };
+        window.ebChartGrid = function () { return root.getAttribute('data-theme') === 'light' ? 'rgba(15,23,42,0.12)' : 'rgba(255,255,255,0.1)'; };
+
+        function recolorCharts() {
+            if (!window.Chart || !Chart.instances) return;
+            Object.values(Chart.instances).forEach(function (c) {
+                var sc = (c.options && c.options.scales) || {};
+                Object.keys(sc).forEach(function (k) {
+                    if (sc[k].ticks) sc[k].ticks.color = ebChartTick();
+                    if (sc[k].pointLabels) sc[k].pointLabels.color = ebChartTick();
+                    if (sc[k].grid && sc[k].grid.display !== false) sc[k].grid.color = ebChartGrid();
+                });
+                var lg = c.options && c.options.plugins && c.options.plugins.legend;
+                if (lg && lg.labels) lg.labels.color = ebChartTick();
+                c.update();
+            });
+        }
+
+        function syncButtons() {
+            var light = root.getAttribute('data-theme') === 'light';
+            document.querySelectorAll('[data-eb-action="theme"]').forEach(function (b) {
+                b.setAttribute('aria-pressed', light ? 'true' : 'false');
+                b.setAttribute('title', light ? 'Voltar ao modo escuro' : 'Ativar modo claro');
+            });
+        }
+
+        document.addEventListener('click', function (e) {
+            var b = e.target.closest && e.target.closest('[data-eb-action]');
+            if (!b) return;
+            var action = b.getAttribute('data-eb-action');
+            if (action === 'theme') {
+                var next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+                root.setAttribute('data-theme', next);
+                try { localStorage.setItem('eb-theme', next); } catch (err) {}
+                syncButtons();
+                recolorCharts();
+            } else if (action === 'font-up' || action === 'font-down') {
+                var cur = parseInt(root.style.fontSize, 10) || 100;
+                var nf = Math.min(140, Math.max(90, cur + (action === 'font-up' ? 10 : -10)));
+                root.style.fontSize = nf + '%';
+                try { localStorage.setItem('eb-font', String(nf)); } catch (err) {}
+            }
+        });
+        window.addEventListener('load', syncButtons);
+        document.addEventListener('DOMContentLoaded', syncButtons);
+    })();
+    </script>
+
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -164,10 +222,56 @@
         @media (max-width: 768px) {
             .mobile-hidden { display: none; }
         }
+
+        /* ===== Acessibilidade ===== */
+        .skip-link { position: absolute; left: -999px; top: 0; z-index: 2000; background: #10b981; color: #04130d; padding: .6rem 1rem; font-weight: 600; }
+        .skip-link:focus { left: 8px; top: 8px; }
+        :focus-visible { outline: 3px solid #38bdf8; outline-offset: 2px; }
+        #conteudo:focus { outline: none; }
+        @media (prefers-reduced-motion: reduce) {
+            * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+        }
+
+        /* ===== Modo claro (o escuro continua sendo o padrão) ===== */
+        html[data-theme="light"] body { background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); color: #0f172a; }
+        html[data-theme="light"] :focus-visible { outline-color: #0369a1; }
+        html[data-theme="light"] .glass { background: rgba(255,255,255,0.8); border: 1px solid rgba(15,23,42,0.12); }
+        html[data-theme="light"] .glass-strong { background: rgba(255,255,255,0.94); border: 1px solid rgba(15,23,42,0.12); }
+        html[data-theme="light"] .leaflet-container { background: #e2e8f0; }
+        html[data-theme="light"] .slider-thumb { background: #cbd5e1; }
+        html[data-theme="light"] .blockchain-hash { color: #047857; }
+        html[data-theme="light"] .text-white { color: #0f172a !important; }
+        html[data-theme="light"] .text-gray-300 { color: #334155 !important; }
+        html[data-theme="light"] .text-gray-400,
+        html[data-theme="light"] .text-gray-500 { color: #475569 !important; }
+        html[data-theme="light"] .text-emerald-300,
+        html[data-theme="light"] .text-emerald-400,
+        html[data-theme="light"] .text-emerald-500,
+        html[data-theme="light"] .hover\:text-emerald-400:hover { color: #047857 !important; }
+        html[data-theme="light"] .text-blue-400 { color: #1d4ed8 !important; }
+        html[data-theme="light"] .text-red-400,
+        html[data-theme="light"] .text-red-500 { color: #b91c1c !important; }
+        html[data-theme="light"] .text-purple-400 { color: #6d28d9 !important; }
+        html[data-theme="light"] .text-yellow-400 { color: #a16207 !important; }
+        html[data-theme="light"] .hover\:text-white:hover { color: #047857 !important; }
+        html[data-theme="light"] .bg-dark-light { background-color: #ffffff !important; }
+        html[data-theme="light"] .bg-dark-light\/50 { background-color: rgba(255,255,255,0.7) !important; }
+        html[data-theme="light"] .bg-gray-700 { background-color: #e2e8f0 !important; }
+        html[data-theme="light"] .hover\:bg-gray-600:hover { background-color: #cbd5e1 !important; }
+        html[data-theme="light"] .border-gray-700 { border-color: #cbd5e1 !important; }
+        html[data-theme="light"] .border-gray-800 { border-color: #e2e8f0 !important; }
+        html[data-theme="light"] .bg-emerald-600,
+        html[data-theme="light"] .bg-emerald-700,
+        html[data-theme="light"] .hover\:bg-emerald-700:hover { color: #ffffff !important; }
+        html[data-theme="light"] .bg-gradient-to-br.text-white,
+        html[data-theme="light"] .bg-gradient-to-br .text-white,
+        html[data-theme="light"] .bg-emerald-600.text-white,
+        html[data-theme="light"] .bg-emerald-700.text-white { color: #ffffff !important; }
     </style>
 </head>
 <body>
     <div id="app" v-cloak>
+        <a href="#conteudo" class="skip-link">Pular para o conteúdo</a>
         <!-- Navigation -->
         <nav class="fixed w-full z-50 glass-strong border-b border-emerald-500/20">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -193,27 +297,14 @@
                             <span class="mobile-hidden">Relatório ESG</span>
                         </button>
                         
-                        <!-- 
-                        <li class="access-menu" >
-                            <button id="access-btn" @click="accesibility" class="bg-gray-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-lg shadow-emerald-500/30 flex items-center gap-2">
-                                <i class="fa-brands fa-accessible-icon"></i> 
-                                <span class="mobile-hidden">Acessibilidade</span>
-                            </button>
-
-                            <div class="dropdown" role="menu">
-                                <button id="toggle-theme">🌙 Modo Escuro</button>
-                                <button id="change-lang">🌎 Trocar Idioma</button>
-                            </div>
-                         </li>
-                        -->
-                            
+                        </div>
+                    <div class="flex items-center gap-1 ml-4" role="group" aria-label="Acessibilidade">
+                        <button type="button" data-eb-action="font-down" aria-label="Diminuir tamanho da fonte" title="Diminuir fonte" class="glass px-3 py-2 rounded-lg text-sm font-semibold text-gray-300 hover:text-emerald-400 transition">A&minus;</button>
+                        <button type="button" data-eb-action="font-up" aria-label="Aumentar tamanho da fonte" title="Aumentar fonte" class="glass px-3 py-2 rounded-lg text-sm font-semibold text-gray-300 hover:text-emerald-400 transition">A+</button>
+                        <button type="button" data-eb-action="theme" aria-pressed="false" aria-label="Modo claro" title="Ativar modo claro" class="glass px-3 py-2 rounded-lg text-sm text-gray-300 hover:text-emerald-400 transition"><i class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i></button>
                     </div>
-                
-                    
                 </div>
             </div>
-
-            <script src="accesbilityScript.js" ></script>
             
             <!-- Mobile Menu -->
             <div v-if="mobileMenu" class="md:hidden glass-strong border-t border-gray-700">
@@ -230,6 +321,7 @@
             </div>
         </nav>
 
+        <span id="conteudo" tabindex="-1"></span>
         <!-- Hero Section -->
         <section id="top" class="relative pt-32 pb-20 overflow-hidden matrix-bg">
             <div class="absolute inset-0 bg-gradient-to-b from-emerald-900/20 to-transparent"></div>
@@ -1260,8 +1352,8 @@
                                 responsive: true,
                                 plugins: { legend: { display: false } },
                                 scales: {
-                                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#9ca3af' } },
-                                    x: { grid: { display: false }, ticks: { color: '#9ca3af' } }
+                                    y: { beginAtZero: true, grid: { color: ebChartGrid() }, ticks: { color: ebChartTick() } },
+                                    x: { grid: { display: false }, ticks: { color: ebChartTick() } }
                                 }
                             }
                         });
@@ -1285,10 +1377,10 @@
                             },
                             options: {
                                 responsive: true,
-                                plugins: { legend: { display: true, labels: { color: '#9ca3af' } } },
+                                plugins: { legend: { display: true, labels: { color: ebChartTick() } } },
                                 scales: {
-                                    y: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#9ca3af' } },
-                                    x: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#9ca3af' } }
+                                    y: { grid: { color: ebChartGrid() }, ticks: { color: ebChartTick() } },
+                                    x: { grid: { color: ebChartGrid() }, ticks: { color: ebChartTick() } }
                                 }
                             }
                         });
@@ -1320,11 +1412,11 @@
                             },
                             options: {
                                 responsive: true,
-                                plugins: { legend: { labels: { color: '#9ca3af' } } },
+                                plugins: { legend: { labels: { color: ebChartTick() } } },
                                 scales: {
                                     r: {
-                                        grid: { color: 'rgba(255,255,255,0.1)' },
-                                        pointLabels: { color: '#9ca3af' },
+                                        grid: { color: ebChartGrid() },
+                                        pointLabels: { color: ebChartTick() },
                                         ticks: { display: false, backdropColor: 'transparent' }
                                     }
                                 }
