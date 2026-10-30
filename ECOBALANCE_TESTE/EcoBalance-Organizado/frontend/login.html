@@ -267,9 +267,663 @@
   <!-- Abas -->
   <nav v-if="logado" class="flex gap-2 mb-4 text-sm">
     <button @click="aba = 'setores'; erro = ''" :class="aba === 'setores' ? 'bg-emerald-700 text-white' : 'text-gray-300 hover:text-white'" class="px-3 py-1.5 rounded">Setores</button>
+    <button v-if="ehAnalista" @click="aba = 'dashboard'; erro = ''" :class="aba === 'dashboard' ? 'bg-emerald-700 text-white' : 'text-gray-300 hover:text-white'" class="px-3 py-1.5 rounded">Dashboard </button>
     <button v-if="ehAnalista" @click="aba = 'calcular'; erro = ''" :class="aba === 'calcular' ? 'bg-emerald-700 text-white' : 'text-gray-300 hover:text-white'" class="px-3 py-1.5 rounded">Calcular</button>
     <button @click="abrirLogs" :class="aba === 'logs' ? 'bg-emerald-700 text-white' : 'text-gray-300 hover:text-white'" class="px-3 py-1.5 rounded">Logs</button>
   </nav>
+
+  <!-- Dashboard Analista -->
+  <section v-if="logado && aba === 'dashboard' && ehAnalista" class="space-y-6">
+
+
+    <!-- Hero Section  -->
+    <div class="card p-8">
+      <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-900/30 border border-emerald-600/40 text-emerald-300 text-sm">
+        ● Normas de referência: ISO 14001 | IFRS S2 | GRI 305
+      </div>
+
+      <h1 class="text-4xl md:text-5xl font-bold mt-6 mb-4">
+        A Matemática da
+        <span class="text-emerald-400">
+          Sustentabilidade
+        </span>
+      </h1>
+
+      <p class="text-gray-400 text-lg max-w-4xl">
+        Governança ESG através de Modelos de Insumo-Produto de Leontief.
+        Transforme custos de ineficiência em oportunidades de sustentabilidade
+        utilizando cálculos auditáveis e rastreáveis por hash.
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+
+        <div class="card p-4 text-center">
+          <div class="text-3xl font-bold text-emerald-400">
+            2015-2025
+          </div>
+          <div class="text-sm text-gray-400">
+            Análise Decenal
+          </div>
+        </div>
+
+        <div class="card p-4 text-center">
+          <div class="text-3xl font-bold text-emerald-400">
+            {{ setores.length }}
+          </div>
+          <div class="text-sm text-gray-400">
+            Setores Disponíveis
+          </div>
+        </div>
+
+        <div class="card p-4 text-center">
+          <div class="text-3xl font-bold text-emerald-400">
+            SHA-256
+          </div>
+          <div class="text-sm text-gray-400">
+            Auditoria Integrada
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Fluxo de trabalho  -->
+    <div class="card p-8">
+      <h2 class="text-2xl font-bold text-emerald-400 mb-6">
+        Fluxo de Trabalho do Analista
+      </h2>
+
+      <div class="grid md:grid-cols-5 gap-4">
+
+        <div class="card p-4 text-center">
+          <div class="font-semibold">
+            1
+          </div>
+          <div class="mt-2 text-sm">
+            Configurar Matriz
+          </div>
+        </div>
+
+        <div class="card p-4 text-center">
+          <div class="font-semibold">
+            2
+          </div>
+          <div class="mt-2 text-sm">
+            Simular Cenários ESG
+          </div>
+        </div>
+
+        <div class="card p-4 text-center">
+          <div class="font-semibold">
+            3
+          </div>
+          <div class="mt-2 text-sm">
+            Validar Resultados
+          </div>
+        </div>
+
+        <div class="card p-4 text-center">
+          <div class="font-semibold">
+            4
+          </div>
+          <div class="mt-2 text-sm">
+            Aprovação Interna
+          </div>
+        </div>
+
+        <div class="card p-4 text-center">
+          <div class="font-semibold">
+            5
+          </div>
+          <div class="mt-2 text-sm">
+            Registrar Cálculo Oficial
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="card p-8">
+
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-3xl font-bold text-emerald-400">
+          Matriz de Leontief
+        </h2>
+
+        <button
+          @click="resetMatrix"
+          class="px-3 py-2 rounded bg-gray-700">
+          Reset
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr>
+              <th class="p-3 text-left">
+                Setor
+              </th>
+              <th
+                v-for="col in matrixCols"
+                :key="col"
+                class="p-3 text-center">
+                {{ col }}
+              </th>
+
+              <th class="p-3 text-center">
+                Demanda
+              </th>
+
+            </tr>
+
+          </thead>
+
+          <tbody>
+
+            <tr
+              v-for="(row,i) in matrix"
+              :key="i">
+
+              <td class="p-3 font-semibold">
+                {{ row.nome }}
+              </td>
+
+              <td
+                v-for="(v,j) in row.valores"
+                :key="j"
+                class="p-2">
+
+                <input
+                  v-model.number="matrix[i].valores[j]"
+                  type="number"
+                  step="0.01"
+                  class="w-20 p-1 rounded bg-slate-800 text-center">
+
+              </td>
+
+              <td class="p-2">
+
+                <input
+                  v-model.number="matrix[i].demanda"
+                  type="number"
+                  class="w-24 p-1 rounded bg-slate-800 text-center">
+
+              </td>
+
+            </tr>
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+      <div class="mt-6 card p-4">
+
+        <div class="text-gray-400">
+          Produção Total Projetada
+        </div>
+
+        <div class="text-4xl font-bold text-emerald-400">
+
+          {{ producaoTotal }}
+
+        </div>
+
+        <div class="text-sm text-gray-500 mt-2">
+          X = (I - C)^-1 · d
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Exportar -->
+
+    <!--
+    <div class="mt-6 flex justify-end">
+
+      <button
+        @click="exportarPDF"
+        class="px-6 py-3 rounded bg-blue-600 hover:bg-blue-700">
+
+        Exportar PDF Gerencial
+
+      </button>
+
+    </div>
+  -->
+    <!-- Antes e Depois-->
+    <div class="grid md:grid-cols-2 gap-6">
+
+      <div class="card p-6 border border-red-700/30">
+
+        <h2 class="text-xl font-bold text-red-400 mb-4">
+          Antes: Planilhas e Relatórios Isolados
+        </h2>
+
+        <ul class="space-y-3 text-gray-400">
+
+          <li>
+            ❌ Dados fragmentados
+          </li>
+
+          <li>
+            ❌ Sem rastreabilidade dos cálculos
+          </li>
+
+          <li>
+            ❌ Dificuldade para auditoria
+          </li>
+
+          <li>
+            ❌ Indicadores ESG sem validação matemática
+          </li>
+
+          <li>
+            ❌ Maior risco de greenwashing
+          </li>
+
+        </ul>
+
+      </div>
+
+      <div class="card p-6 border border-emerald-600/30">
+
+        <h2 class="text-xl font-bold text-emerald-400 mb-4">
+          Depois: EcoBalance Ledger
+        </h2>
+
+        <ul class="space-y-3 text-gray-300">
+
+          <li>
+            ✅ Modelo de Leontief aplicado
+          </li>
+
+          <li>
+            ✅ Simulações de impacto ESG
+          </li>
+
+          <li>
+            ✅ Registro oficial dos cálculos
+          </li>
+
+          <li>
+            ✅ Auditoria por hash SHA-256
+          </li>
+
+          <li>
+            ✅ Transparência e governança
+          </li>
+
+        </ul>
+
+      </div>
+
+    </div>
+
+    <!-- Núcleo de cálculo -->    
+    <div class="card p-8">
+      <div class="mb-6">
+
+        <span class="text-emerald-400 text-sm font-semibold">
+          NÚCLEO DE INTELIGÊNCIA
+        </span>
+
+        <h2 class="text-3xl font-bold mt-2">
+          Matriz de Insumo-Produto de Leontief
+        </h2>
+
+        <p class="text-gray-400 mt-3 max-w-4xl">
+          Analise a interdependência entre os setores produtivos e avalie
+          impactos econômicos e ambientais antes de registrar oficialmente
+          uma simulação.
+        </p>
+
+      </div>
+
+      <div class="card p-4 border border-emerald-600/30">
+          <div class="text-sm text-emerald-400 mb-2">
+            Fórmula Utilizada
+          </div>
+
+          <div class="text-2xl font-mono text-emerald-300">
+            X = (I - C)<sup>-1</sup> · d
+          </div>
+
+          <div class="text-sm text-gray-400 mt-2">
+            Onde X representa a produção total necessária para atender a demanda final.
+          </div>
+        </div>
+
+    </div>
+
+    <!-- Setores carregados-->
+    <div class="card p-8">
+
+      <h3 class="text-xl font-bold text-emerald-400 mb-4">
+        Setores disponíveis para análise
+      </h3>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+        <div
+          v-for="s in setores"
+          :key="s[idKey]"
+          class="card p-4">
+
+          <div class="font-semibold">
+            {{ s[nomeKey] }}
+          </div>
+
+          <div class="text-xs text-gray-400 mt-2">
+            Setor carregado no sistema
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Simulador ESG -->
+    <div class="card p-8">
+
+      <div class="mb-6">
+
+        <span class="text-blue-400 text-sm font-semibold">
+          SIMULAÇÃO ESTRATÉGICA
+        </span>
+
+        <h2 class="text-3xl font-bold mt-2">
+          Simulador ESG e ROI
+        </h2>
+
+        <p class="text-gray-400 mt-3">
+          Avalie possíveis melhorias antes de registrar o cálculo oficial.
+        </p>
+
+      </div>
+
+      <div class="grid lg:grid-cols-2 gap-8">
+        <div class="space-y-6">
+          <div>
+            <div class="flex justify-between mb-2">
+              <span>Eficiência Operacional</span>
+              <span class="text-emerald-400">
+                {{ simulacao.eficiencia }}%
+              </span>
+            </div>
+            <input
+              v-model.number="simulacao.eficiencia"
+              type="range"
+              min="0"
+              max="50"
+              class="w-full">
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-2">
+              <span>Economia de Energia</span>
+              <span class="text-emerald-400">
+                {{ simulacao.energia }}%
+              </span>
+            </div>
+
+            <input
+              v-model.number="simulacao.energia"
+              type="range"
+              min="0"
+              max="40"
+              class="w-full">
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-2">
+              <span>Redução de Resíduos</span>
+              <span class="text-emerald-400">
+                {{ simulacao.residuos }}%
+              </span>
+            </div>
+
+            <input
+              v-model.number="simulacao.residuos"
+              type="range"
+              min="0"
+              max="30"
+              class="w-full">
+          </div>
+        </div>
+
+        <div class="grid gap-4">
+          <div class="card p-4 text-center">
+            <div class="text-sm text-gray-400">
+              ROI Estimado
+            </div>
+
+            <div class="text-3xl font-bold text-emerald-400">
+              {{ roiEstimado }}%
+            </div>
+          </div>
+
+          <div class="card p-4 text-center">
+            <div class="text-sm text-gray-400">
+              Payback Previsto
+            </div>
+
+            <div class="text-3xl font-bold text-blue-400">
+              {{ payback }} meses
+            </div>
+          </div>
+
+          <div class="card p-4 text-center">
+            <div class="text-sm text-gray-400">
+              Redução de CO₂
+            </div>
+
+            <div class="text-3xl font-bold text-emerald-400">
+              {{ co2Reduzido }}%
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Estratégico-->
+    <div class="card p-8">
+
+      <h2 class="text-2xl font-bold text-emerald-400 mb-4">
+        Resultado Estratégico Projetado
+      </h2>
+
+      <div class="grid md:grid-cols-4 gap-4">
+        <div class="card p-4 text-center">
+          <div class="text-sm text-gray-400">
+            ROI
+          </div>
+          <div class="text-3xl font-bold text-emerald-400">
+            {{ roiEstimado }}%
+          </div>
+        </div>
+
+        <div class="card p-4 text-center">
+          <div class="text-sm text-gray-400">
+            CO₂
+          </div>
+          <div class="text-3xl font-bold text-emerald-400">
+            -{{ co2Reduzido }}%
+          </div>
+        </div>
+
+        <div class="card p-4 text-center">
+          <div class="text-sm text-gray-400">
+            Payback
+          </div>
+          <div class="text-3xl font-bold text-blue-400">
+            {{ payback }}
+          </div>
+        </div>
+
+        <div class="card p-4 text-center">
+          <div class="text-sm text-gray-400">
+            Setores
+          </div>
+          <div class="text-3xl font-bold text-emerald-400">
+            {{ setores.length }}
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6 card p-4">
+
+        <div class="font-semibold text-emerald-400 mb-2">
+          Recomendação do Sistema
+        </div>
+
+        <p class="text-gray-300">
+          O cenário analisado apresenta potencial de melhoria operacional,
+          redução de desperdícios e fortalecimento dos indicadores ESG.
+          Recomenda-se submeter os resultados à validação da gestão antes
+          do registro oficial da simulação.
+        </p>
+
+      </div>
+    </div>
+
+    <!-- Governança -->
+
+    <div class="card p-8">
+
+      <h2 class="text-2xl font-bold text-emerald-400 mb-6">
+        Governança e Conformidade
+      </h2>
+
+      <div class="grid md:grid-cols-3 gap-4">
+        <div class="card p-4 text-center">
+          <div class="text-lg font-bold text-emerald-400">
+            ISO 14001
+          </div>
+          <div class="text-sm text-gray-400 mt-2">
+            Gestão Ambiental
+          </div>
+        </div>
+
+        <div class="card p-4 text-center">
+          <div class="text-lg font-bold text-emerald-400">
+            IFRS S2
+          </div>
+          <div class="text-sm text-gray-400 mt-2">
+            Divulgação Climática
+          </div>
+        </div>
+
+        <div class="card p-4 text-center">
+          <div class="text-lg font-bold text-emerald-400">
+            GRI 305
+          </div>
+          <div class="text-sm text-gray-400 mt-2">
+            Emissões e Sustentabilidade
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rastreabilidad -->
+    <div class="card p-8">
+
+      <h2 class="text-2xl font-bold text-emerald-400 mb-6">
+        Ciclo de Rastreabilidade
+      </h2>
+
+      <div class="grid md:grid-cols-5 gap-4">
+
+        <div class="card p-4 text-center">
+          <div class="text-3xl mb-2">📊</div>
+          <div class="font-semibold">
+            Cálculo
+          </div>
+        </div>
+
+        <div class="card p-4 text-center">
+          <div class="text-3xl mb-2">🔒</div>
+          <div class="font-semibold">
+            Hash SHA-256
+          </div>
+        </div>
+
+        <div class="card p-4 text-center">
+          <div class="text-3xl mb-2">📁</div>
+          <div class="font-semibold">
+            Log Gerado
+          </div>
+        </div>
+
+        <div class="card p-4 text-center">
+          <div class="text-3xl mb-2">🔍</div>
+          <div class="font-semibold">
+            Auditoria
+          </div>
+        </div>
+
+        <div class="card p-4 text-center">
+          <div class="text-3xl mb-2">✅</div>
+          <div class="font-semibold">
+            Aprovação
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Arquitetura -->
+    <div class="card p-8">
+      <h2 class="text-2xl font-bold text-emerald-400 mb-6">
+        Arquitetura da Solução
+      </h2>
+
+      <div class="space-y-4">
+        <div class="card p-4">
+          <strong>1.</strong>
+          Cadastro e autenticação dos usuários.
+        </div>
+
+        <div class="card p-4">
+          <strong>2.</strong>
+          Controle de acesso por perfil
+          (Stakeholder, Analista e Auditor).
+        </div>
+
+        <div class="card p-4">
+          <strong>3.</strong>
+          Modelagem matemática através do Modelo
+          Insumo-Produto de Leontief.
+        </div>
+
+        <div class="card p-4">
+          <strong>4.</strong>
+          Registro das simulações oficiais em banco de dados.
+        </div>
+
+        <div class="card p-4">
+          <strong>5.</strong>
+          Encadeamento de hashes para rastreabilidade.
+        </div>
+
+        <div class="card p-4">
+          <strong>6.</strong>
+          Auditoria e validação dos resultados.
+        </div>
+
+      </div>
+
+    </div>
+
+    
+
+  </section>
 
   <!-- Setores -->
   <section v-if="logado && aba === 'setores'" class="card p-6">
@@ -414,6 +1068,9 @@ const { createApp, ref, computed, onMounted } = Vue;
 
 createApp({
   setup() {
+
+    
+
     const token = ref(sessionStorage.getItem('eco_token') || '');
     const email = ref('');
     const senha = ref('');
@@ -440,6 +1097,133 @@ createApp({
     const logs = ref([]);
     const filtro = ref('');
     const verificacao = ref(null);
+    const simulacao = ref({
+      eficiencia: 15,
+      energia: 10,
+      residuos: 8,
+      investimento: 500000
+    });
+
+    const matrixCols = ref([
+      'Setor A',
+      'Setor B',
+      'Setor C'
+    ]);
+
+    const matrix = ref([
+      {
+        nome: 'Setor A',
+        demanda: 100,
+        valores: [0.15, 0.10, 0.05]
+      },
+      {
+        nome: 'Setor B',
+        demanda: 80,
+        valores: [0.20, 0.10, 0.08]
+      },
+      {
+        nome: 'Setor C',
+        demanda: 50,
+        valores: [0.05, 0.10, 0.10]
+      }
+    ]);
+
+    function exportarPDF() {
+
+      const doc = new jsPDF();
+
+      let linha = 20;
+
+      doc.setFontSize(18);
+      doc.text('EcoBalance Ledger', 20, linha);
+
+      linha += 10;
+
+      doc.setFontSize(12);
+
+      doc.text(
+        `Data: ${new Date().toLocaleDateString('pt-BR')}`,
+        20,
+        linha
+      );
+
+      linha += 15;
+
+      doc.text(
+        'Simulação Matriz de Leontief',
+        20,
+        linha
+      );
+
+      linha += 10;
+
+      matrix.value.forEach((setor) => {
+
+        doc.text(
+          `${setor.nome} | Demanda: ${setor.demanda}`,
+          20,
+          linha
+        );
+
+        linha += 8;
+
+        doc.text(
+          `Coeficientes: ${setor.valores.join(', ')}`,
+          25,
+          linha
+        );
+
+        linha += 10;
+
+      });
+
+      linha += 5;
+
+      doc.setFontSize(14);
+
+      doc.text(
+        `Produção Total Projetada: ${producaoTotal.value}`,
+        20,
+        linha
+      );
+
+      linha += 15;
+
+      doc.setFontSize(12);
+
+      doc.text(
+        `ROI Projetado: ${roiEstimado.value}%`,
+        20,
+        linha
+      );
+
+      linha += 10;
+
+      doc.text(
+        `Redução CO2: ${co2Reduzido.value}%`,
+        20,
+        linha
+      );
+
+      linha += 20;
+
+      doc.text(
+        'Recomendação:',
+        20,
+        linha
+      );
+
+      linha += 10;
+
+      doc.text(
+        'Submeter este cenário para validação da gestão antes do registro oficial.',
+        20,
+        linha
+      );
+
+      doc.save('ecoBalance-simulacao.pdf');
+
+    }
 
     const logado = computed(() => !!token.value);
 
@@ -458,6 +1242,76 @@ createApp({
     // Infere as colunas sem depender do nome exato: id = primeira coluna que começa com "id"; nome = primeira coluna de texto.
     const idKey = computed(() => colunas.value.find(k => /^id/i.test(k)) || colunas.value[0]);
     const nomeKey = computed(() => colunas.value.find(k => typeof setores.value[0][k] === 'string') || idKey.value);
+
+    const roiEstimado = computed(() => {
+      return (
+        simulacao.value.eficiencia * 1.8 +
+        simulacao.value.energia * 1.5 +
+        simulacao.value.residuos * 1.2
+      ).toFixed(1);
+    });
+
+    const payback = computed(() => {
+      const valor = (
+        48 -
+        simulacao.value.eficiencia * 0.6 -
+        simulacao.value.energia * 0.4
+      );
+
+      return Math.max(6, valor).toFixed(0);
+    });
+
+    const co2Reduzido = computed(() => {
+      return (
+        simulacao.value.energia * 0.7 +
+        simulacao.value.residuos * 0.4
+      ).toFixed(1);
+    });
+
+    const producaoTotal = computed(() => {
+
+      const totalDemanda = matrix.value.reduce(
+        (acc, row) => acc + Number(row.demanda || 0),
+        0
+    );
+
+    const mediaCoef =
+        matrix.value.reduce((acc, row) => {
+          const somaLinha =
+            row.valores.reduce((a, v) => a + Number(v || 0), 0);
+
+          return acc + somaLinha / row.valores.length;
+
+        }, 0) / matrix.value.length;
+
+      return (
+        totalDemanda /
+        Math.max(0.05, (1 - mediaCoef))
+      ).toFixed(2);
+
+    });
+
+    function resetMatrix() {
+
+      matrix.value = [
+        {
+          nome: 'Setor A',
+          demanda: 100,
+          valores: [0.15, 0.10, 0.05]
+        },
+        {
+          nome: 'Setor B',
+          demanda: 80,
+          valores: [0.20, 0.10, 0.08]
+        },
+        {
+          nome: 'Setor C',
+          demanda: 50,
+          valores: [0.05, 0.10, 0.10]
+        }
+      ];
+
+    }
 
     async function api(caminho, opcoes = {}) {
       const headers = { 'Content-Type': 'application/json' };
@@ -657,7 +1511,8 @@ createApp({
     onMounted(() => { if (token.value) recarregar(); });
 
     return { email, senha, carregando, erro, setores, colunas, logado, perfil, entrar, recarregar, sair, 
-             modo, cadastro, cadastrar,
+             modo, cadastro, cadastrar, simulacao, roiEstimado, payback, co2Reduzido,
+             matrix, matrixCols, producaoTotal, resetMatrix, exportarPDF, producaoTotal,
              emailRecuperacao,mensagemRecuperacao, solicitarRecuperacao, aba, ano, demanda, 
              resultado, ehAnalista, idKey, nomeKey, calcular, nomeDoSetor,
              logs, filtro, verificacao, ehAuditor, podeVerificar, fmtData, corStatus,
