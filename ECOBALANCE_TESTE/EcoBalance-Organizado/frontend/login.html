@@ -127,13 +127,64 @@
         {{ carregando ? 'Entrando...' : 'Entrar' }}
       </button>
     </div>
-    <label>Esqueceu a senha?
+    <div class="mt-3 text-sm">
+      <button
+        @click="modo='recuperar'; erro=''; mensagemRecuperacao=''"
+        class="text-emerald-400 hover:text-emerald-300 underline">
 
-    </label>
+        Esqueceu a senha?
+      </button>
+  </div>
   </section>
 
 
-  <!-- Cadastro -->
+  <!-- ESQUECEU SENHA -->
+
+  <section v-if="!logado && modo === 'recuperar'" class="card p-6 max-w-md">
+    <h2 class="text-lg font-semibold mb-4">
+      Recuperação de senha
+    </h2>
+
+    <p class="text-sm text-gray-400 mb-4">
+      Informe seu e-mail para registrar uma solicitação.
+    </p>
+
+    <label class="block text-sm">
+      E-mail
+      <input
+        v-model="emailRecuperacao"
+        type="email"
+        class="mt-1 w-full px-3 py-2 rounded border border-gray-600 text-white"
+        style="background:#0f172a"
+      >
+    </label>
+
+    <button
+      @click="solicitarRecuperacao"
+      :disabled="carregando || !emailRecuperacao"
+      class="w-full mt-4 py-2 rounded font-medium bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50"
+    >
+      Solicitar recuperação
+    </button>
+
+    <p
+      v-if="mensagemRecuperacao"
+      class="mt-3 text-sm text-emerald-300"
+    >
+      {{ mensagemRecuperacao }}
+    </p>
+
+    <button
+      @click="modo='login'"
+      class="w-full mt-4 text-sm text-gray-400 hover:text-white underline"
+    >
+      Voltar para login
+    </button>
+  </section>
+  
+
+
+  <!-- CADASTRO -->
   <div v-if="!logado && modo === 'login'" class="mt-4">
     <button
       @click="modo = 'cadastro'; erro = ''"
@@ -375,6 +426,10 @@ createApp({
       perfil: 'STAKEHOLDER'
     });
 
+    const emailRecuperacao = ref('');
+    const mensagemRecuperacao = ref('');
+
+
     const carregando = ref(false);
     const erro = ref('');
     const setores = ref([]);
@@ -465,6 +520,30 @@ createApp({
         };
 
         modo.value = 'login';
+
+      } catch (e) {
+        erro.value = e.message;
+      } finally {
+        carregando.value = false;
+      }
+    }
+
+    async function solicitarRecuperacao() {
+      erro.value = '';
+      mensagemRecuperacao.value = '';
+      carregando.value = true;
+
+      try {
+
+        const resposta = await api('/api/auth/esqueci-senha', {
+          method: 'POST',
+          body: JSON.stringify({
+            email: emailRecuperacao.value
+          })
+        });
+
+        mensagemRecuperacao.value = resposta.message;
+        emailRecuperacao.value = '';
 
       } catch (e) {
         erro.value = e.message;
@@ -577,8 +656,10 @@ createApp({
 
     onMounted(() => { if (token.value) recarregar(); });
 
-    return { email, senha, carregando, erro, setores, colunas, logado, perfil, entrar, recarregar, sair, modo, cadastro, cadastrar,
-             aba, ano, demanda, resultado, ehAnalista, idKey, nomeKey, calcular, nomeDoSetor,
+    return { email, senha, carregando, erro, setores, colunas, logado, perfil, entrar, recarregar, sair, 
+             modo, cadastro, cadastrar,
+             emailRecuperacao,mensagemRecuperacao, solicitarRecuperacao, aba, ano, demanda, 
+             resultado, ehAnalista, idKey, nomeKey, calcular, nomeDoSetor,
              logs, filtro, verificacao, ehAuditor, podeVerificar, fmtData, corStatus,
              recarregarLogs, abrirLogs, verificarCadeia, decidir };
   }
