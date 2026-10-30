@@ -384,6 +384,8 @@
 
     </div>
 
+    <!-- Matriz de leontieff-->
+
     <div class="card p-8">
 
       <div class="flex justify-between items-center mb-6">
@@ -475,6 +477,44 @@
         <div class="text-sm text-gray-500 mt-2">
           X = (I - C)^-1 · d
         </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- Resultado por Setor-->
+    <div class="card p-6 mt-6">
+
+      <h3 class="text-xl font-bold text-emerald-400 mb-4">
+        Resultado da Simulação
+      </h3>
+
+      <div
+        v-for="setor in resultadoSetores"
+        :key="setor.nome"
+        class="flex justify-between py-3 border-b border-gray-700">
+
+        <span>
+          {{ setor.nome }}
+        </span>
+
+        <span class="font-bold text-emerald-400">
+          {{ setor.producao }}
+        </span>
+
+      </div>
+
+      <div
+        class="flex justify-between mt-4 pt-4 border-t border-gray-600">
+
+        <span class="font-bold">
+          Produção Total
+        </span>
+
+        <span class="font-bold text-emerald-400">
+          {{ producaoTotal }}
+        </span>
 
       </div>
 
@@ -1273,21 +1313,43 @@ createApp({
       const totalDemanda = matrix.value.reduce(
         (acc, row) => acc + Number(row.demanda || 0),
         0
-    );
+      );
 
-    const mediaCoef =
-        matrix.value.reduce((acc, row) => {
-          const somaLinha =
-            row.valores.reduce((a, v) => a + Number(v || 0), 0);
+      const mediaCoef =
+          matrix.value.reduce((acc, row) => {
+            const somaLinha =
+              row.valores.reduce((a, v) => a + Number(v || 0), 0);
 
-          return acc + somaLinha / row.valores.length;
+            return acc + somaLinha / row.valores.length;
 
-        }, 0) / matrix.value.length;
+          }, 0) / matrix.value.length;
 
-      return (
-        totalDemanda /
-        Math.max(0.05, (1 - mediaCoef))
-      ).toFixed(2);
+        return (
+          totalDemanda /
+          Math.max(0.05, (1 - mediaCoef))
+        ).toFixed(2);
+
+    });
+
+    const resultadoSetores = computed(() => {
+      return matrix.value.map((setor) => {
+
+        const somaCoeficientes =
+          setor.valores.reduce(
+            (acc, valor) => acc + Number(valor || 0),
+            0
+          );
+
+        const producao =
+          Number(setor.demanda || 0) *
+          (1 + somaCoeficientes);
+
+        return {
+          nome: setor.nome,
+          producao: producao.toFixed(2)
+        };
+
+      });
 
     });
 
@@ -1512,7 +1574,7 @@ createApp({
 
     return { email, senha, carregando, erro, setores, colunas, logado, perfil, entrar, recarregar, sair, 
              modo, cadastro, cadastrar, simulacao, roiEstimado, payback, co2Reduzido,
-             matrix, matrixCols, producaoTotal, resetMatrix, exportarPDF, producaoTotal,
+             matrix, matrixCols, producaoTotal, resetMatrix, exportarPDF, resultadoSetores,
              emailRecuperacao,mensagemRecuperacao, solicitarRecuperacao, aba, ano, demanda, 
              resultado, ehAnalista, idKey, nomeKey, calcular, nomeDoSetor,
              logs, filtro, verificacao, ehAuditor, podeVerificar, fmtData, corStatus,
