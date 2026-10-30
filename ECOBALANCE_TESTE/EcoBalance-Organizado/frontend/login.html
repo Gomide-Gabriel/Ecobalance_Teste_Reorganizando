@@ -6,6 +6,8 @@
 <title>Login · EcoBalance Ledger</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<!-- jsPDF: exportação do relatório gerencial -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- Acessibilidade: tema claro/escuro + tamanho da fonte (mesmas chaves do index.html, então a escolha vale nas duas páginas) -->
 <script>
@@ -514,15 +516,34 @@
 
         <span class="font-bold text-emerald-400">
           {{ producaoTotal }}
+          <div
+            class="mt-4 text-lg font-semibold"
+            :class="nivelESG.cor">
+
+            {{ nivelESG.icone }}
+            {{ nivelESG.texto }}
+
+          </div>
+
+          <div class="card p-6 mt-6">
+
+              <h3 class="text-xl font-bold text-emerald-400 mb-4">
+                Diagnóstico Automatizado
+              </h3>
+
+              <p class="text-gray-300">
+                {{ diagnostico }}
+              </p>
+          </div>
+
         </span>
 
+      
       </div>
-
     </div>
 
     <!-- Exportar -->
 
-    <!--
     <div class="mt-6 flex justify-end">
 
       <button
@@ -534,7 +555,7 @@
       </button>
 
     </div>
-  -->
+
 
      <!-- Simulador ESG -->
     <div class="card p-8">
@@ -1172,99 +1193,185 @@ createApp({
 
     function exportarPDF() {
 
-      const doc = new jsPDF();
+      // jsPDF vem do CDN como window.jspdf.jsPDF
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        alert('Biblioteca de PDF não carregada. Verifique a conexão e recarregue a página.');
+        return;
+      }
 
-      let linha = 20;
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ unit: 'mm', format: 'a4' });
 
-      doc.setFontSize(18);
-      doc.text('EcoBalance Ledger', 20, linha);
+        const M = 20;                                   // margem lateral
+        const W = doc.internal.pageSize.getWidth();     // 210
+        const H = doc.internal.pageSize.getHeight();    // 297
+        const largura = W - M * 2;
+        let y = 20;
 
-      linha += 10;
+        const verde = [16, 185, 129];
+        const cinza = [90, 90, 90];
 
-      doc.setFontSize(12);
+        // quebra de página quando faltar espaço
+        const garantirEspaco = (necessario) => {
+          if (y + necessario > H - 20) {
+            doc.addPage();
+            y = 20;
+          }
+        };
 
-      doc.text(
-        `Data: ${new Date().toLocaleDateString('pt-BR')}`,
-        20,
-        linha
-      );
+        const titulo = (texto) => {
+          garantirEspaco(16);
+          y += 4;
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(13);
+          doc.setTextColor(...verde);
+          doc.text(texto, M, y);
+          y += 2;
+          doc.setDrawColor(...verde);
+          doc.setLineWidth(0.4);
+          doc.line(M, y, W - M, y);
+          y += 7;
+          doc.setTextColor(0, 0, 0);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(11);
+        };
 
-      linha += 15;
+        const paragrafo = (texto) => {
+          const linhas = doc.splitTextToSize(texto, largura);
+          garantirEspaco(linhas.length * 6);
+          doc.text(linhas, M, y);
+          y += linhas.length * 6;
+        };
 
-      doc.text(
-        'Simulação Matriz de Leontief',
-        20,
-        linha
-      );
+        const chaveValor = (rotulo, valor) => {
+          garantirEspaco(7);
+          doc.setFont('helvetica', 'bold');
+          doc.text(rotulo, M, y);
+          doc.setFont('helvetica', 'normal');
+          doc.text(String(valor), M + 62, y);
+          y += 7;
+        };
 
-      linha += 10;
+        // tabela simples: cabeçalho + linhas, colunas de largura igual
+        const tabela = (cabecalho, linhas) => {
+          const lh = 8;
+          const cw = largura / cabecalho.length;
 
-      matrix.value.forEach((setor) => {
+          const desenharLinha = (cels, negrito, fundo) => {
+            garantirEspaco(lh);
+            if (fundo) {
+              doc.setFillColor(...fundo);
+              doc.rect(M, y - 5.5, largura, lh, 'F');
+            }
+            doc.setFont('helvetica', negrito ? 'bold' : 'normal');
+            cels.forEach((c, i) => doc.text(String(c), M + i * cw + 2, y));
+            y += lh;
+          };
 
+          desenharLinha(cabecalho, true, [225, 245, 238]);
+          linhas.forEach((l, idx) => desenharLinha(l, false, idx % 2 ? [246, 246, 246] : null));
+          y += 2;
+        };
+
+        const fmt = (n) => Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        // ---------- Cabeçalho ----------
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(20);
+        doc.setTextColor(...verde);
+        doc.text('EcoBalance Ledger', M, y);
+        y += 8;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        doc.setTextColor(...cinza);
+        doc.text('Relatório Gerencial - Simulação ESG e Matriz de Leontief', M, y);
+        y += 6;
         doc.text(
-          `${setor.nome} | Demanda: ${setor.demanda}`,
-          20,
-          linha
+          `Data: ${new Date().toLocaleDateString('pt-BR')}  ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`,
+          M, y
+        );
+        doc.setTextColor(0, 0, 0);
+        y += 4;
+
+        // ---------- Parâmetros ESG ----------
+        titulo('1. Parâmetros da Simulação ESG');
+        chaveValor('Eficiência Operacional:', `${simulacao.value.eficiencia}%`);
+        chaveValor('Economia de Energia:', `${simulacao.value.energia}%`);
+        chaveValor('Redução de Resíduos:', `${simulacao.value.residuos}%`);
+
+        // ---------- Matriz ----------
+        titulo('2. Matriz de Leontief (coeficientes técnicos)');
+        tabela(
+          ['Setor', ...matrixCols.value],
+          matrix.value.map(s => [s.nome, ...s.valores.map(v => Number(v).toFixed(2))])
         );
 
-        linha += 8;
-
-        doc.text(
-          `Coeficientes: ${setor.valores.join(', ')}`,
-          25,
-          linha
+        // ---------- Demandas ----------
+        titulo('3. Demanda Final por Setor');
+        tabela(
+          ['Setor', 'Demanda'],
+          matrix.value.map(s => [s.nome, fmt(s.demanda)])
         );
 
-        linha += 10;
+        // ---------- Produção ----------
+        titulo('4. Produção por Setor (ajustada pelo fator ESG)');
+        tabela(
+          ['Setor', 'Produção'],
+          resultadoSetores.value.map(s => [s.nome, fmt(s.producao)])
+        );
 
-      });
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        garantirEspaco(10);
+        doc.text(`Produção Total Projetada: ${fmt(producaoTotal.value)}`, M, y);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        y += 8;
 
-      linha += 5;
+        // ---------- Indicadores ----------
+        titulo('5. Indicadores ESG e Financeiros');
+        chaveValor('ROI Estimado:', `${roiEstimado.value}%`);
+        chaveValor('Payback:', `${payback.value} meses`);
+        chaveValor('Redução de CO2:', `${co2Reduzido.value}%`);
+        chaveValor('Nível ESG:', nivelESG.value.texto);
 
-      doc.setFontSize(14);
+        // ---------- Diagnóstico ----------
+        titulo('6. Diagnóstico Automatizado');
+        paragrafo(diagnostico.value);
+        y += 2;
 
-      doc.text(
-        `Produção Total Projetada: ${producaoTotal.value}`,
-        20,
-        linha
-      );
+        // ---------- Recomendação ----------
+        const roi = Number(roiEstimado.value);
+        let recomendacao;
+        if (roi >= 80) {
+          recomendacao = 'Cenário apto. Submeter à validação gerencial e, após a aprovação interna, registrar o cálculo oficial para auditoria (hash SHA-256).';
+        } else if (roi >= 50) {
+          recomendacao = 'Cenário promissor, mas ainda abaixo da meta. Ajustar os parâmetros ESG e realizar nova simulação antes de submeter à aprovação.';
+        } else {
+          recomendacao = 'Cenário não recomendado para aprovação no momento. Revisar os parâmetros ESG e os coeficientes da matriz antes de prosseguir.';
+        }
 
-      linha += 15;
+        titulo('7. Recomendação Final');
+        paragrafo(recomendacao);
 
-      doc.setFontSize(12);
+        // ---------- Rodapé com paginação ----------
+        const total = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= total; i++) {
+          doc.setPage(i);
+          doc.setFontSize(9);
+          doc.setTextColor(...cinza);
+          doc.text('EcoBalance Ledger - Governança ESG | Leontief | Auditoria SHA-256', M, H - 10);
+          doc.text(`Página ${i} de ${total}`, W - M, H - 10, { align: 'right' });
+        }
 
-      doc.text(
-        `ROI Projetado: ${roiEstimado.value}%`,
-        20,
-        linha
-      );
+        doc.save(`ecobalance-simulacao-${new Date().toISOString().slice(0, 10)}.pdf`);
 
-      linha += 10;
-
-      doc.text(
-        `Redução CO2: ${co2Reduzido.value}%`,
-        20,
-        linha
-      );
-
-      linha += 20;
-
-      doc.text(
-        'Recomendação:',
-        20,
-        linha
-      );
-
-      linha += 10;
-
-      doc.text(
-        'Submeter este cenário para validação da gestão antes do registro oficial.',
-        20,
-        linha
-      );
-
-      doc.save('ecoBalance-simulacao.pdf');
-
+      } catch (e) {
+        console.error('Erro ao exportar PDF:', e);
+        alert('Não foi possível gerar o PDF: ' + e.message);
+      }
     }
 
     const logado = computed(() => !!token.value);
@@ -1330,6 +1437,53 @@ createApp({
           totalDemanda /
           Math.max(0.05, (1 - mediaCoef))
         ).toFixed(2);
+
+    });
+
+    const nivelESG = computed(() => {
+
+      const score =
+        simulacao.value.eficiencia +
+        simulacao.value.energia +
+        simulacao.value.residuos;
+
+      if (score >= 70) {
+        return {
+          texto: 'Sustentabilidade Alta',
+          cor: 'text-emerald-400',
+          icone: '🟢'
+        };
+      }
+
+      if (score >= 35) {
+        return {
+          texto: 'Sustentabilidade Moderada',
+          cor: 'text-yellow-400',
+          icone: '🟡'
+        };
+      }
+
+      return {
+        texto: 'Sustentabilidade Baixa',
+        cor: 'text-red-400',
+        icone: '🔴'
+      };
+
+    });
+
+    const diagnostico = computed(() => {
+
+      const roi = Number(roiEstimado.value);
+
+      if (roi >= 80) {
+        return "Prosseguir para validação gerencial.";
+      }
+
+      if (roi >= 50) {
+        return "Cenário promissor, realizar nova análise.";
+      }
+
+      return "Necessita melhorias antes da aprovação.";
 
     });
 
@@ -1590,7 +1744,7 @@ createApp({
 
     return { email, senha, carregando, erro, setores, colunas, logado, perfil, entrar, recarregar, sair, 
              modo, cadastro, cadastrar, simulacao, roiEstimado, payback, co2Reduzido,
-             matrix, matrixCols, producaoTotal, resetMatrix, exportarPDF, resultadoSetores,
+             matrix, matrixCols, producaoTotal, resetMatrix, exportarPDF, resultadoSetores, nivelESG, diagnostico,
              emailRecuperacao,mensagemRecuperacao, solicitarRecuperacao, aba, ano, demanda, 
              resultado, ehAnalista, idKey, nomeKey, calcular, nomeDoSetor,
              logs, filtro, verificacao, ehAuditor, podeVerificar, fmtData, corStatus,
