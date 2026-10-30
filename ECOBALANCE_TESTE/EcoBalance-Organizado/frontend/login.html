@@ -535,6 +535,110 @@
 
     </div>
   -->
+
+     <!-- Simulador ESG -->
+    <div class="card p-8">
+
+      <div class="mb-6">
+
+        <span class="text-blue-400 text-sm font-semibold">
+          SIMULAÇÃO ESTRATÉGICA
+        </span>
+
+        <h2 class="text-3xl font-bold mt-2">
+          Simulador ESG e ROI
+        </h2>
+
+        <p class="text-gray-400 mt-3">
+          Avalie possíveis melhorias antes de registrar o cálculo oficial.
+        </p>
+
+      </div>
+
+      <div class="grid lg:grid-cols-2 gap-8">
+        <div class="space-y-6">
+          <div>
+            <div class="flex justify-between mb-2">
+              <span>Eficiência Operacional</span>
+              <span class="text-emerald-400">
+                {{ simulacao.eficiencia }}%
+              </span>
+            </div>
+            <input
+              v-model.number="simulacao.eficiencia"
+              type="range"
+              min="0"
+              max="50"
+              class="w-full">
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-2">
+              <span>Economia de Energia</span>
+              <span class="text-emerald-400">
+                {{ simulacao.energia }}%
+              </span>
+            </div>
+
+            <input
+              v-model.number="simulacao.energia"
+              type="range"
+              min="0"
+              max="40"
+              class="w-full">
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-2">
+              <span>Redução de Resíduos</span>
+              <span class="text-emerald-400">
+                {{ simulacao.residuos }}%
+              </span>
+            </div>
+
+            <input
+              v-model.number="simulacao.residuos"
+              type="range"
+              min="0"
+              max="30"
+              class="w-full">
+          </div>
+        </div>
+
+        <div class="grid gap-4">
+          <div class="card p-4 text-center">
+            <div class="text-sm text-gray-400">
+              ROI Estimado
+            </div>
+
+            <div class="text-3xl font-bold text-emerald-400">
+              {{ roiEstimado }}%
+            </div>
+          </div>
+
+          <div class="card p-4 text-center">
+            <div class="text-sm text-gray-400">
+              Payback Previsto
+            </div>
+
+            <div class="text-3xl font-bold text-blue-400">
+              {{ payback }} meses
+            </div>
+          </div>
+
+          <div class="card p-4 text-center">
+            <div class="text-sm text-gray-400">
+              Redução de CO₂
+            </div>
+
+            <div class="text-3xl font-bold text-emerald-400">
+              {{ co2Reduzido }}%
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Antes e Depois-->
     <div class="grid md:grid-cols-2 gap-6">
 
@@ -668,109 +772,7 @@
 
     </div>
 
-    <!-- Simulador ESG -->
-    <div class="card p-8">
-
-      <div class="mb-6">
-
-        <span class="text-blue-400 text-sm font-semibold">
-          SIMULAÇÃO ESTRATÉGICA
-        </span>
-
-        <h2 class="text-3xl font-bold mt-2">
-          Simulador ESG e ROI
-        </h2>
-
-        <p class="text-gray-400 mt-3">
-          Avalie possíveis melhorias antes de registrar o cálculo oficial.
-        </p>
-
-      </div>
-
-      <div class="grid lg:grid-cols-2 gap-8">
-        <div class="space-y-6">
-          <div>
-            <div class="flex justify-between mb-2">
-              <span>Eficiência Operacional</span>
-              <span class="text-emerald-400">
-                {{ simulacao.eficiencia }}%
-              </span>
-            </div>
-            <input
-              v-model.number="simulacao.eficiencia"
-              type="range"
-              min="0"
-              max="50"
-              class="w-full">
-          </div>
-
-          <div>
-            <div class="flex justify-between mb-2">
-              <span>Economia de Energia</span>
-              <span class="text-emerald-400">
-                {{ simulacao.energia }}%
-              </span>
-            </div>
-
-            <input
-              v-model.number="simulacao.energia"
-              type="range"
-              min="0"
-              max="40"
-              class="w-full">
-          </div>
-
-          <div>
-            <div class="flex justify-between mb-2">
-              <span>Redução de Resíduos</span>
-              <span class="text-emerald-400">
-                {{ simulacao.residuos }}%
-              </span>
-            </div>
-
-            <input
-              v-model.number="simulacao.residuos"
-              type="range"
-              min="0"
-              max="30"
-              class="w-full">
-          </div>
-        </div>
-
-        <div class="grid gap-4">
-          <div class="card p-4 text-center">
-            <div class="text-sm text-gray-400">
-              ROI Estimado
-            </div>
-
-            <div class="text-3xl font-bold text-emerald-400">
-              {{ roiEstimado }}%
-            </div>
-          </div>
-
-          <div class="card p-4 text-center">
-            <div class="text-sm text-gray-400">
-              Payback Previsto
-            </div>
-
-            <div class="text-3xl font-bold text-blue-400">
-              {{ payback }} meses
-            </div>
-          </div>
-
-          <div class="card p-4 text-center">
-            <div class="text-sm text-gray-400">
-              Redução de CO₂
-            </div>
-
-            <div class="text-3xl font-bold text-emerald-400">
-              {{ co2Reduzido }}%
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
+   
     <!-- Estratégico-->
     <div class="card p-8">
 
@@ -1332,6 +1334,14 @@ createApp({
     });
 
     const resultadoSetores = computed(() => {
+
+      const fatorESG =
+        (
+          simulacao.value.eficiencia * 0.005 +
+          simulacao.value.energia * 0.003 +
+          simulacao.value.residuos * 0.002
+        );
+
       return matrix.value.map((setor) => {
 
         const somaCoeficientes =
@@ -1340,9 +1350,15 @@ createApp({
             0
           );
 
+        const coeficienteAjustado =
+          Math.max(
+            0,
+            somaCoeficientes * (1 - fatorESG)
+          );
+
         const producao =
           Number(setor.demanda || 0) *
-          (1 + somaCoeficientes);
+          (1 + coeficienteAjustado);
 
         return {
           nome: setor.nome,
