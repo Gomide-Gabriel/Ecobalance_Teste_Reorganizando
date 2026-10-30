@@ -413,6 +413,14 @@ app.patch('/api/logs/:id/status', authenticateJWT, autorizar('AUDITOR'), async (
 // Protegida pela variável de ambiente ADMIN_KEY. Se ela não existir, as rotas ficam desligadas.
 const PERFIS_VALIDOS = ['STAKEHOLDER', 'ANALISTA', 'AUDITOR'];
 
+const emailOk = (e) =>
+  typeof e === 'string' &&
+  e.length <= 255 &&
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+
+const normEmail = (e) =>
+  String(e || '').trim().toLowerCase();
+
 const tentativas = new Map(); // limite simples por IP e rota (em memória)
 function limitar(max, janelaMs) {
     return (req, res, next) => {
@@ -488,6 +496,42 @@ app.post('/api/usuario', limitar(20, 15 * 60 * 1000), async (req, res) => {
         });
     }
 });
+
+
+// Esquecer a Senha
+app.post('/api/auth/esqueci-senha', limitar(5, 60 * 60 * 1000), async (req, res) => {
+    console.log('ROTA ESQUECI-SENHA EXECUTADA');
+
+    const email = normEmail(req.body?.email);
+
+    const resposta = {
+        message:
+            'Se o e-mail estiver cadastrado, o pedido foi registrado.'
+        };
+
+    if (!emailOk(email)) {
+        return res.json(resposta);
+    }
+    try{
+        const usuario = await pool.query('SELECT 1 FROM usuarios WHERE lower(email) = $1', [email]);
+        console.log('Email recebido:', email);
+        console.log('Usuario encontrado:', usuario.rows.length);
+
+        if (usuario.rows.length) {
+            console.log('Tentando gravar pedido...');
+
+            await pool.query('INSERT INTO pedidos_redefinicao (email) VALUES ($1)', [email]);
+
+            console.log('Pedido registrado');
+         }
+
+    } catch (err) {
+        console.error(err);
+    }
+
+    return res.json(resposta);
+});
+
 
 // ------------------------- Login ------------------------------//
 
