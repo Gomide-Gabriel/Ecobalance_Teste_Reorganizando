@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Painel · EcoBalance Ledger</title>
+<title>Login · EcoBalance Ledger</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -111,7 +111,7 @@
   <span id="conteudo" tabindex="-1"></span>
 
   <!-- Login -->
-  <section v-if="!logado" class="card p-6 max-w-md">
+  <section v-if="!logado && modo === 'login'" class="card p-6 max-w-md">
     <h2 class="text-lg font-semibold mb-4">Entrar</h2>
     <div class="space-y-3">
       <label class="block text-sm">E-mail
@@ -126,6 +126,90 @@
               class="w-full py-2 rounded font-medium bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50">
         {{ carregando ? 'Entrando...' : 'Entrar' }}
       </button>
+    </div>
+    <label>Esqueceu a senha?
+
+    </label>
+  </section>
+
+
+  <!-- Cadastro -->
+  <div v-if="!logado && modo === 'login'" class="mt-4">
+    <button
+      @click="modo = 'cadastro'; erro = ''"
+      class="text-emerald-400 hover:text-emerald-300 underline">
+      Cadastre-se
+    </button>
+  </div>
+
+  <section
+    v-if="!logado && modo === 'cadastro'"
+    class="card p-6 max-w-md"
+>
+  <h2 class="text-lg font-semibold mb-4">
+    Criar conta
+  </h2>
+
+  <div class="space-y-3">
+
+      <label class="block text-sm">
+        Nome
+        <input
+          v-model="cadastro.nome"
+          type="text"
+          class="mt-1 w-full px-3 py-2 rounded border border-gray-600 text-white"
+          style="background:#0f172a"
+        >
+      </label>
+
+      <label class="block text-sm">
+        E-mail
+        <input
+          v-model="cadastro.email"
+          type="email"
+          class="mt-1 w-full px-3 py-2 rounded border border-gray-600 text-white"
+          style="background:#0f172a"
+        >
+      </label>
+
+      <label class="block text-sm">
+        Senha
+        <input
+          v-model="cadastro.senha"
+          type="password"
+          class="mt-1 w-full px-3 py-2 rounded border border-gray-600 text-white"
+          style="background:#0f172a"
+        >
+      </label>
+
+      <label class="block text-sm">
+        Perfil
+        <select
+          v-model="cadastro.perfil"
+          class="mt-1 w-full px-3 py-2 rounded border border-gray-600 text-white"
+          style="background:#0f172a"
+        >
+          <option>STAKEHOLDER</option>
+          <option>ANALISTA</option>
+          <option>AUDITOR</option>
+        </select>
+      </label>
+
+      <button
+        @click="cadastrar"
+        :disabled="carregando"
+        class="w-full py-2 rounded font-medium bg-emerald-600 hover:bg-emerald-700"
+      >
+        {{ carregando ? 'Criando...' : 'Criar Conta' }}
+      </button>
+
+      <button
+        @click="modo='login'"
+        class="w-full text-sm text-gray-400 hover:text-white underline"
+      >
+        Voltar para login
+      </button>
+
     </div>
   </section>
 
@@ -282,6 +366,15 @@ createApp({
     const token = ref(sessionStorage.getItem('eco_token') || '');
     const email = ref('');
     const senha = ref('');
+    const modo = ref('login');
+
+    const cadastro = ref({
+      nome: '',
+      email: '',
+      senha: '',
+      perfil: 'STAKEHOLDER'
+    });
+
     const carregando = ref(false);
     const erro = ref('');
     const setores = ref([]);
@@ -345,6 +438,34 @@ createApp({
         sessionStorage.setItem('eco_token', d.token);
         senha.value = '';
         await carregarSetores();
+      } catch (e) {
+        erro.value = e.message;
+      } finally {
+        carregando.value = false;
+      }
+    }
+
+    async function cadastrar() {
+      erro.value = '';
+      carregando.value = true;
+
+      try {
+        await api('/api/usuario', {
+          method: 'POST',
+          body: JSON.stringify(cadastro.value)
+        });
+
+        alert('Usuário criado com sucesso. Faça login para continuar.');
+
+        cadastro.value = {
+          nome: '',
+          email: '',
+          senha: '',
+          perfil: 'STAKEHOLDER'
+        };
+
+        modo.value = 'login';
+
       } catch (e) {
         erro.value = e.message;
       } finally {
@@ -456,7 +577,7 @@ createApp({
 
     onMounted(() => { if (token.value) recarregar(); });
 
-    return { email, senha, carregando, erro, setores, colunas, logado, perfil, entrar, recarregar, sair,
+    return { email, senha, carregando, erro, setores, colunas, logado, perfil, entrar, recarregar, sair, modo, cadastro, cadastrar,
              aba, ano, demanda, resultado, ehAnalista, idKey, nomeKey, calcular, nomeDoSetor,
              logs, filtro, verificacao, ehAuditor, podeVerificar, fmtData, corStatus,
              recarregarLogs, abrirLogs, verificarCadeia, decidir };

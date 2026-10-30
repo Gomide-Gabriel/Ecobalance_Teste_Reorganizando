@@ -193,7 +193,7 @@ app.get('/api/setores/:id', authenticateJWT, async (req, res) => {
     }
 });
 
-	app.post('/api/setores', authenticateJWT, autorizar('ANALISTA'), async (req, res) => {
+app.post('/api/setores', authenticateJWT, autorizar('ANALISTA'), async (req, res) => {
     const { nome_setor, descricao } = req.body;
     if (!nome_setor) return res.status(400).json({ message: 'nome_setor é obrigatório.' });
     try {
@@ -408,6 +408,86 @@ app.patch('/api/logs/:id/status', authenticateJWT, autorizar('AUDITOR'), async (
 });
 
 
+// ------------------------- CRUD Usuário ------------------------------//
+
+// Protegida pela variável de ambiente ADMIN_KEY. Se ela não existir, as rotas ficam desligadas.
+const PERFIS_VALIDOS = ['STAKEHOLDER', 'ANALISTA', 'AUDITOR'];
+
+const tentativas = new Map(); // limite simples por IP e rota (em memória)
+function limitar(max, janelaMs) {
+    return (req, res, next) => {
+        const k = req.ip + '|' + req.path, agora = Date.now();
+        let r = tentativas.get(k);
+        if (!r || r.ate < agora) r = { n: 0, ate: agora + janelaMs };
+        r.n++; tentativas.set(k, r);
+        if (r.n > max) return res.status(429).json({ message: 'Muitas tentativas. Tente de novo mais tarde.' });
+        next();
+    };
+}
+
+// trecho que não está retornando resposta
+app.post('/api/usuario', limitar(20, 15 * 60 * 1000), async (req, res) => {
+
+    console.log('Entrou na rota');
+    try {
+        let { nome, email, senha, perfil } = req.body;
+
+        nome = nome?.trim();
+        email = email?.trim().toLowerCase();
+        perfil = perfil?.trim().toUpperCase();
+
+        if (!nome || !email || !senha || !perfil) {
+            return res.status(400).json({
+                error: 'Todos os campos são obrigatórios'
+            });
+        }
+
+        if (!PERFIS_VALIDOS.includes(perfil)) {
+            return res.status(400).json({
+                error: 'Perfil inválido'
+            });
+        }
+
+        if (senha.length < 8) {
+            return res.status(400).json({
+                error: 'A senha deve ter pelo menos 8 caracteres'
+            });
+        }
+
+        const senha_hash = await bcrypt.hash(senha, 10);
+
+        const resultado = await pool.query(
+            `
+            INSERT INTO usuarios
+            (nome, email, senha_hash, perfil)
+            VALUES ($1, $2, $3, $4)
+            RETURNING id_usuario, nome, email, perfil
+            `,
+            [nome, email, senha_hash, perfil]
+        );
+
+        return res.status(201).json({
+            message: 'Usuário criado com sucesso',
+            usuario: resultado.rows[0]
+        });
+
+    } catch (error) {
+
+        if (error.code === '23505') {
+            return res.status(409).json({
+                error: 'E-mail já cadastrado'
+            });
+        }
+
+        console.error('Erro ao criar usuário:', error);
+        console.error(error.message);
+        console.error(error.code);
+
+        return res.status(500).json({
+            error: 'Erro interno do servidor'
+        });
+    }
+});
 
 // ------------------------- Login ------------------------------//
 
@@ -416,7 +496,7 @@ app.post('/api/auth/login', async (req, res) => {
     if (!email || !senha) return res.status(400).json({ message: 'email e senha são obrigatórios.' });
     try {
         const { rows } = await pool.query(
-            'SELECT id_usuario, email, senha_hash, perfil FROM usuarios WHERE email = $1', [email]);
+            'SELECT id_usuario, email, senha_hash, perfil FROM usuarios WHERE lower(email) = lower($1)', [email]);
         const usuario = rows[0];
         const ok = usuario && await bcrypt.compare(senha, usuario.senha_hash);
         if (!ok) return res.status(401).json({ message: 'Email ou senha inválidos.' });

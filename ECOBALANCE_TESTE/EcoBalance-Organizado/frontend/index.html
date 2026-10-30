@@ -287,16 +287,18 @@
                     </div>
                     
                     <div class="hidden md:flex items-center space-x-8">
-                        <a @click.prevent="scrollTo('matriz')" href="#matriz" class="nav-link text-sm font-medium text-gray-300 hover:text-emerald-400 transition cursor-pointer">Matriz Leontief</a>
-                        <a @click.prevent="scrollTo('blockchain')" href="#blockchain" class="nav-link text-sm font-medium text-gray-300 hover:text-emerald-400 transition cursor-pointer">Blockchain</a>
-                        <a @click.prevent="scrollTo('simulador')" href="#simulador" class="nav-link text-sm font-medium text-gray-300 hover:text-emerald-400 transition cursor-pointer">Simulador ROI</a>
+                        <a @click.prevent="scrollTo('conteudo')" href="#conteudo" class="nav-link text-sm font-medium text-gray-300 hover:text-emerald-400 transition cursor-pointer">Definição</a>
+                        <a @click.prevent="scrollTo('ods')" href="#ods" class="nav-link text-sm font-medium text-gray-300 hover:text-emerald-400 transition cursor-pointer">ODS</a>
                         <a @click.prevent="scrollTo('dashboard')" href="#dashboard" class="nav-link text-sm font-medium text-gray-300 hover:text-emerald-400 transition cursor-pointer">Dashboard</a>
-                        <a href="/painel.html" class="nav-link text-sm font-medium text-gray-300 hover:text-emerald-400 transition cursor-pointer">Painel</a>
-                        <button @click="generateReport" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-lg shadow-emerald-500/30 flex items-center gap-2">
+                        <a href="/login.html" class="nav-link text-sm font-medium text-gray-300 hover:text-emerald-400 transition cursor-pointer">Login</a>
+                        
+                        <!--                       
+                         <button @click="generateReport" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-lg shadow-emerald-500/30 flex items-center gap-2">
                             <i class="fas fa-file-pdf"></i>
                             <span class="mobile-hidden">Relatório ESG</span>
                         </button>
-                        
+                        -->
+
                         </div>
                     <div class="flex items-center gap-1 ml-4" role="group" aria-label="Acessibilidade">
                         <button type="button" data-eb-action="font-down" aria-label="Diminuir tamanho da fonte" title="Diminuir fonte" class="glass px-3 py-2 rounded-lg text-sm font-semibold text-gray-300 hover:text-emerald-400 transition">A&minus;</button>
@@ -313,10 +315,8 @@
                     <a @click.prevent="scrollTo('blockchain'); mobileMenu = false" href="#blockchain" class="block px-3 py-2 text-gray-300 hover:text-emerald-400">Blockchain</a>
                     <a @click.prevent="scrollTo('simulador'); mobileMenu = false" href="#simulador" class="block px-3 py-2 text-gray-300 hover:text-emerald-400">Simulador ROI</a>
                     <a @click.prevent="scrollTo('dashboard'); mobileMenu = false" href="#dashboard" class="block px-3 py-2 text-gray-300 hover:text-emerald-400">Dashboard</a>
-                    <a href="/painel.html" class="block px-3 py-2 text-gray-300 hover:text-emerald-400">Painel</a>
-                    <button @click="generateReport" class="w-full text-left px-3 py-2 text-emerald-400">
-                        <i class="fas fa-file-pdf mr-2"></i>Gerar Relatório ESG
-                    </button>
+                    <a href="/login.html" class="block px-3 py-2 text-gray-300 hover:text-emerald-400">Painel</a>
+                    
                 </div>
             </div>
         </nav>
@@ -324,557 +324,116 @@
         <span id="conteudo" tabindex="-1"></span>
         <!-- Hero Section -->
         <section id="top" class="relative pt-32 pb-20 overflow-hidden matrix-bg">
-            <div class="absolute inset-0 bg-gradient-to-b from-emerald-900/20 to-transparent"></div>
-            
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-                <div class="grid lg:grid-cols-2 gap-12 items-center">
-                    <div class="space-y-8">
-                        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm font-mono">
-                            <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                            Normas de referência: ISO 14001 | IFRS S2 | GRI 305
-                        </div>
-                        
-                        <h1 class="text-5xl lg:text-6xl font-bold leading-tight">
-                            A <span class="gradient-text">Matemática</span> da 
-                            <span class="text-emerald-400">Sustentabilidade</span>
-                        </h1>
-                        
-                        <p class="text-xl text-gray-400 leading-relaxed">
-                            Governança ESG através de Modelos de Insumo-Produto de Leontief. 
-                            Transforme custos de ineficiência em oportunidades de sustentabilidade 
-                            com transparência blockchain.
-                        </p>
-                        
-                        <div class="flex flex-wrap gap-4">
-                            <button @click="scrollTo('matriz')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-xl font-semibold transition shadow-lg shadow-emerald-500/30 flex items-center gap-2">
-                                <i class="fas fa-calculator"></i>
-                                Explorar Matriz
-                            </button>
-                            <button @click="scrollTo('simulador')" class="glass hover:bg-white/10 text-white px-8 py-4 rounded-xl font-semibold transition border border-emerald-500/30 flex items-center gap-2">
-                                <i class="fas fa-chart-line"></i>
-                                Simular ROI
-                            </button>
-                        </div>
-                        
-                        <div class="flex items-center gap-6 pt-4 flex-wrap">
-                            <div class="text-center">
-                                <div class="text-3xl font-bold text-emerald-400">2015-2025</div>
-                                <div class="text-sm text-gray-500">Análise Decenal</div>
-                            </div>
-                            <div class="w-px h-12 bg-gray-700 mobile-hidden"></div>
-                            <div class="text-center">
-                                <div class="text-3xl font-bold text-emerald-400">14.2%</div>
-                                <div class="text-sm text-gray-500">Ganho Eficiência</div>
-                            </div>
-                            <div class="w-px h-12 bg-gray-700 mobile-hidden"></div>
-                            <div class="text-center">
-                                <div class="text-3xl font-bold text-emerald-400">Zero</div>
-                                <div class="text-sm text-gray-500">Greenwashing</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="relative">
-                        <div class="absolute inset-0 bg-emerald-500/20 blur-3xl rounded-full"></div>
-                        <div class="relative glass rounded-2xl p-6 border border-emerald-500/20">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="font-semibold text-emerald-400">Matriz de Leontief - Tempo Real</h3>
-                                <span class="text-xs font-mono text-emerald-500 animate-pulse">● LIVE</span>
-                            </div>
-                            
-                            <div class="space-y-3">
-                                <div v-for="(setor, index) in setores" :key="index" 
-                                     class="flex items-center justify-between p-3 rounded-lg bg-dark-light/50 border border-gray-700 hover:border-emerald-500/50 transition">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded bg-emerald-500/20 flex items-center justify-center text-emerald-400">
-                                            <i :class="setor.icon"></i>
-                                        </div>
-                                        <div>
-                                            <div class="font-medium text-sm">{{ setor.nome }}</div>
-                                            <div class="text-xs text-gray-500">{{ setor.insumo }} insumos</div>
-                                        </div>
-                                    </div>
-                                    <div class="text-right">
-                                        <div class="font-mono text-emerald-400 font-bold">{{ setor.eficiencia }}%</div>
-                                        <div class="text-xs text-gray-500">eficiência</div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="mt-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
-                                <div class="text-xs text-emerald-400 font-mono mb-1">Fórmula Ativa:</div>
-                                <div class="leontief-formula text-emerald-300 text-sm">
-                                    x = (I - C)<sup>-1</sup> · d
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
 
-        <!-- Problem vs Solution -->
-        <section class="py-20 relative">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="text-center mb-16">
-                    <h2 class="text-3xl font-bold mb-4">De <span class="text-red-400">Relatórios Caóticos</span> para 
-                        <span class="text-emerald-400">Governança Estruturada</span>
-                    </h2>
-                    <p class="text-gray-400 max-w-2xl mx-auto">
-                        Elimine o greenwashing com dados auditáveis e previsões econômicas reais baseadas em Álgebra Linear
-                    </p>
-                </div>
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+                <h2 class="text-4xl font-bold mb-6">O que é o projeto</h2>
+                <p class="text-xl text-gray-400 mb-8">
+                    O EcoBalance Ledger é um protótipo acadêmico em desenvolvido por alunos da <spam class="text-red-300">FATEC Zona Leste</spam>. 
+                    
+                    Unimos contabilidade de custos, TI Verde e ciência econômica em uma única interface.
+                </p>
                 
-                <div class="grid md:grid-cols-2 gap-8">
-                    <div class="glass rounded-2xl p-8 border border-red-500/20 relative overflow-hidden">
-                        <div class="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-2xl"></div>
-                        <div class="flex items-center gap-3 mb-6">
-                            <div class="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center text-red-400">
-                                <i class="fas fa-times text-xl"></i>
-                            </div>
-                            <h3 class="text-xl font-bold text-red-400">Antes: Excel & Planilhas</h3>
-                        </div>
-                        <ul class="space-y-3 text-gray-400">
-                            <li class="flex items-start gap-2">
-                                <i class="fas fa-times-circle text-red-500 mt-1"></i>
-                                <span>Dados fragmentados e não auditáveis</span>
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <i class="fas fa-times-circle text-red-500 mt-1"></i>
-                                <span>Greenwashing sem comprovação matemática</span>
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <i class="fas fa-times-circle text-red-500 mt-1"></i>
-                                <span>Falta de rastreabilidade na cadeia produtiva</span>
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <i class="fas fa-times-circle text-red-500 mt-1"></i>
-                                <span>Não conformidade com IFRS S2</span>
-                            </li>
-                        </ul>
+                <div class="flex flex-wrap justify-center gap-4 mb-12">
+                    <div class="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                        <i class="fab fa-node-js"></i>
+                        <span class="text-sm">Node.js + Express</span>
                     </div>
-                    
-                    <div class="glass rounded-2xl p-8 border border-emerald-500/20 relative overflow-hidden">
-                        <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl"></div>
-                        <div class="flex items-center gap-3 mb-6">
-                            <div class="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
-                                <i class="fas fa-check text-xl"></i>
-                            </div>
-                            <h3 class="text-xl font-bold text-emerald-400">Depois: EcoBalance Ledger</h3>
-                        </div>
-                        <ul class="space-y-3 text-gray-300">
-                            <li class="flex items-start gap-2">
-                                <i class="fas fa-check-circle text-emerald-500 mt-1"></i>
-                                <span>Matriz de Leontief com validação matemática</span>
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <i class="fas fa-check-circle text-emerald-500 mt-1"></i>
-                                <span>Log encadeado por hash SHA-256 para auditoria</span>
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <i class="fas fa-check-circle text-emerald-500 mt-1"></i>
-                                <span>Rastreabilidade dos cálculos realizados</span>
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <i class="fas fa-check-circle text-emerald-500 mt-1"></i>
-                                <span>IFRS S2 e ISO 14001 como normas de referência</span>
-                            </li>
-                        </ul>
+                    <div class="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400">
+                        <i class="fas fa-database"></i>
+                        <span class="text-sm">PostgreSQL (Neon)</span>
+                    </div>
+                    <div class="flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-400">
+                        <i class="fas fa-link"></i>
+                        <span class="text-sm">Log com hash SHA-256</span>
+                    </div>
+                    <div class="flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-400">
+                        <i class="fas fa-user-shield"></i>
+                        <span class="text-sm">Acesso por perfil (JWT)</span>
                     </div>
                 </div>
-            </div>
-        </section>
-
-        <!-- Matriz Leontief Interativa -->
-        <section id="matriz" class="py-20 matrix-bg">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="text-center mb-12">
-                    <span class="text-emerald-400 font-mono text-sm tracking-wider">NÚCLEO DE INTELIGÊNCIA</span>
-                    <h2 class="text-4xl font-bold mt-2 mb-4">Matriz de Insumo-Produto</h2>
-                    <p class="text-gray-400 max-w-2xl mx-auto">
-                        Análise da interdependência entre setores baseada no modelo de Wassily Leontief. 
-                        Identifique gargalos e oportunidades de eficiência em tempo real.
-                    </p>
-                </div>
-
-                <div class="grid lg:grid-cols-3 gap-8">
-                    <!-- Matriz Visual -->
-                    <div class="lg:col-span-2 glass rounded-2xl p-6 border border-emerald-500/20">
-                        <div class="flex justify-between items-center mb-6 flex-wrap gap-2">
-                            <h3 class="text-lg font-semibold text-emerald-400">Coeficientes Técnicos (Matriz C)</h3>
-                            <div class="flex gap-2">
-                                <button @click="resetMatrix" class="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded transition">
-                                    <i class="fas fa-undo mr-1"></i>Reset
-                                </button>
-                                <button @click="optimizeMatrix" class="px-3 py-1 text-xs bg-emerald-600 hover:bg-emerald-700 rounded transition">
-                                    <i class="fas fa-magic mr-1"></i>Otimizar
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-sm">
-                                <thead>
-                                    <tr class="border-b border-gray-700">
-                                        <th class="p-3 text-left text-gray-400">Setor \ Insumo</th>
-                                        <th v-for="(col, idx) in matrixCols" :key="idx" class="p-3 text-center text-emerald-400 font-mono">
-                                            {{ col }}
-                                        </th>
-                                        <th class="p-3 text-right text-gray-400">Demanda (d)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="(row, i) in matrix" :key="i" class="border-b border-gray-800 hover:bg-white/5">
-                                        <td class="p-3 font-medium text-white flex items-center gap-2">
-                                            <i :class="row.icon + ' text-emerald-500'"></i>
-                                            {{ row.nome }}
-                                        </td>
-                                        <td v-for="(val, j) in row.valores" :key="j" class="p-3 text-center">
-                                            <input 
-                                                v-model.number="matrix[i].valores[j]"
-                                                type="number" 
-                                                step="0.01"
-                                                min="0"
-                                                max="1"
-                                                class="w-16 bg-dark-light border border-gray-700 rounded px-2 py-1 text-center text-emerald-400 font-mono focus:border-emerald-500 focus:outline-none"
-                                                @change="calcularProducao"
-                                            >
-                                        </td>
-                                        <td class="p-3 text-right font-mono text-emerald-400">
-                                            <input 
-                                                v-model.number="matrix[i].demanda"
-                                                type="number"
-                                                class="w-20 bg-dark-light border border-gray-700 rounded px-2 py-1 text-right"
-                                                @change="calcularProducao"
-                                            >
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        
-                        <div class="mt-6 p-4 bg-dark-light rounded-lg border border-emerald-500/20">
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="text-sm text-gray-400">Produção Total Calculada (X):</span>
-                                <span class="text-2xl font-bold text-emerald-400 font-mono">{{ producaoTotal }}</span>
-                            </div>
-                            <div class="text-xs text-gray-500">
-                                Calculado via: X = (I - C)<sup>-1</sup> · d | 
-                                <span class="text-emerald-500">Teorema de Hawkins-Simons válido</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Controles e Análise -->
-                    <div class="space-y-6">
-                        <div class="glass rounded-2xl p-6 border border-emerald-500/20">
-                            <h4 class="font-semibold text-emerald-400 mb-4">Indicadores de Produtividade</h4>
-                            <div class="space-y-4">
-                                <div v-for="(indicator, idx) in produtividade" :key="idx" class="flex justify-between items-center p-3 bg-dark-light rounded-lg">
-                                    <div>
-                                        <div class="text-sm font-medium">{{ indicator.nome }}</div>
-                                        <div class="text-xs text-gray-500">{{ indicator.setor }}</div>
-                                    </div>
-                                    <div :class="indicator.valor >= 0 ? 'text-emerald-400' : 'text-red-400'" class="font-bold font-mono">
-                                        {{ indicator.valor > 0 ? '+' : '' }}{{ indicator.valor }}%
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="glass rounded-2xl p-6 border border-emerald-500/20">
-                            <h4 class="font-semibold text-emerald-400 mb-4">Status do Sistema</h4>
-                            <div class="space-y-3">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm text-gray-400">Matriz Produtiva:</span>
-                                    <span class="text-emerald-400 text-sm font-medium">
-                                        <i class="fas fa-check-circle"></i> Sim
-                                    </span>
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm text-gray-400">Condição de Hawkins-Simons:</span>
-                                    <span class="text-emerald-400 text-sm font-medium">
-                                        <i class="fas fa-check-circle"></i> Atendida
-                                    </span>
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm text-gray-400">Eficiência Global:</span>
-                                    <span class="text-emerald-400 text-sm font-bold font-mono">84.2%</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="glass rounded-2xl p-6 border border-purple-500/20">
-                            <h4 class="font-semibold text-purple-400 mb-4">Impacto Ambiental</h4>
-                            <div class="space-y-2">
-                                <div class="flex justify-between text-sm">
-                                    <span class="text-gray-400">CO₂ Evitado:</span>
-                                    <span class="text-emerald-400 font-mono">-2.5%</span>
-                                </div>
-                                <div class="flex justify-between text-sm">
-                                    <span class="text-gray-400">Energia Economizada:</span>
-                                    <span class="text-emerald-400 font-mono">-1.8%</span>
-                                </div>
-                                <div class="flex justify-between text-sm">
-                                    <span class="text-gray-400">Resíduos Reduzidos:</span>
-                                    <span class="text-emerald-400 font-mono">-3.2%</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Blockchain Ledger -->
-        <section id="blockchain" class="py-20 relative overflow-hidden">
-            <div class="absolute inset-0 bg-gradient-to-r from-emerald-900/20 via-purple-900/20 to-emerald-900/20"></div>
             
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-                <div class="text-center mb-12">
-                    <span class="text-purple-400 font-mono text-sm tracking-wider">RASTREABILIDADE</span>
-                    <h2 class="text-4xl font-bold mt-2 mb-4">Ledger Encadeado por Hash</h2>
-                    <p class="text-gray-400 max-w-2xl mx-auto">
-                        Cada cálculo de equilíbrio é registrado em um log encadeado por hash SHA-256, sem rede distribuída. 
-                        O Auditor aprova ou rejeita cada registro. Os blocos exibidos aqui são ilustrativos.
-                    </p>
-                </div>
-
-                <div class="grid lg:grid-cols-3 gap-6">
-                    <!-- Transações Recentes -->
-                    <div class="lg:col-span-2 glass rounded-2xl p-6 border border-purple-500/20">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-lg font-semibold text-purple-400">Transações Recentes</h3>
-                            <span class="text-xs font-mono text-purple-400 animate-pulse">● MINING BLOCK #{{ currentBlock }}</span>
+            <!--
+                <div class="glass rounded-2xl p-8 border border-emerald-500/20 inline-block max-w-full">
+                    <div class="text-sm text-gray-400 mb-4">Repositório GitHub</div>
+                    <div class="flex items-center gap-4 flex-wrap justify-center">
+                        <div class="w-24 h-24 bg-white rounded-lg p-2 flex-shrink-0">
+                            <div class="w-full h-full bg-gradient-to-br from-emerald-500 to-blue-500 rounded flex items-center justify-center text-white text-xs font-mono">
+                                <i class="fas fa-qrcode text-4xl"></i>
+                            </div>
                         </div>
-                        
-                        <div class="space-y-4 max-h-96 overflow-y-auto pr-2">
-                            <div v-for="(tx, idx) in transactions" :key="idx" 
-                                 class="p-4 rounded-lg bg-dark-light/50 border border-gray-700 hover:border-purple-500/50 transition group">
-                                <div class="flex justify-between items-start mb-2">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400">
-                                            <i :class="tx.icon"></i>
-                                        </div>
-                                        <div>
-                                            <div class="font-medium text-sm text-white">{{ tx.tipo }}</div>
-                                            <div class="text-xs text-gray-500">{{ tx.data }}</div>
-                                        </div>
-                                    </div>
-                                    <div :class="tx.valor > 0 ? 'text-emerald-400' : 'text-red-400'" class="font-bold font-mono">
-                                        {{ tx.valor > 0 ? '+' : '' }}{{ tx.valor }} {{ tx.unidade }}
-                                    </div>
-                                </div>
-                                <div class="blockchain-hash text-xs opacity-60 group-hover:opacity-100 transition">
-                                    Hash: {{ tx.hash }}
-                                </div>
-                                <div class="mt-2 flex items-center gap-2 text-xs">
-                                    <span class="px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                                        {{ tx.norma }}
-                                    </span>
-                                    <span class="text-gray-500">Setor: {{ tx.setor }}</span>
-                                </div>
+                        <div class="text-left">
+                            <div class="text-emerald-400 font-mono text-sm mb-1">git clone</div>
+                            <div class="text-white font-mono text-xs bg-dark-light px-3 py-2 rounded border border-gray-700 break-all">
+                                github.com/Gomide-Gabriel/Ecobalance_Teste_Reorganizando
+                            </div>
+                            <div class="mt-2 text-xs text-gray-500">
+                                <i class="fas fa-download mr-1"></i>
+                                Código-fonte público
                             </div>
                         </div>
                     </div>
-
-                    <!-- Status da Rede -->
-                    <div class="space-y-6">
-                        <div class="glass rounded-2xl p-6 border border-purple-500/20">
-                            <h4 class="font-semibold text-purple-400 mb-4">Status da Rede (simulado)</h4>
-                            <div class="space-y-4">
-                                <div class="flex items-center justify-between p-3 bg-dark-light rounded-lg">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                                        <span class="text-sm">Nós Ativos</span>
-                                    </div>
-                                    <span class="font-mono text-emerald-400">12</span>
-                                </div>
-                                <div class="flex items-center justify-between p-3 bg-dark-light rounded-lg">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                                        <span class="text-sm">Bloco Atual</span>
-                                    </div>
-                                    <span class="font-mono text-emerald-400">#{{ currentBlock }}</span>
-                                </div>
-                                <div class="flex items-center justify-between p-3 bg-dark-light rounded-lg">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                                        <span class="text-sm">Tempo Médio</span>
-                                    </div>
-                                    <span class="font-mono text-emerald-400">2.3s</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="glass rounded-2xl p-6 border border-emerald-500/20">
-                            <h4 class="font-semibold text-emerald-400 mb-4">Normas de Referência</h4>
-                            <div class="space-y-2">
-                                <div class="flex items-center gap-2 text-sm text-gray-300">
-                                    <i class="fas fa-certificate text-emerald-500"></i>
-                                    <span>ISO 14001:2015</span>
-                                </div>
-                                <div class="flex items-center gap-2 text-sm text-gray-300">
-                                    <i class="fas fa-certificate text-emerald-500"></i>
-                                    <span>GRI 305 - Emissões</span>
-                                </div>
-                                <div class="flex items-center gap-2 text-sm text-gray-300">
-                                    <i class="fas fa-certificate text-emerald-500"></i>
-                                    <span>IFRS S2 - Clima</span>
-                                </div>
-                                <div class="flex items-center gap-2 text-sm text-gray-300">
-                                    <i class="fas fa-certificate text-emerald-500"></i>
-                                    <span>ISO 50001 - Energia</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="glass rounded-2xl p-6 border border-emerald-500/20 text-center">
-                            <div class="text-3xl font-bold text-emerald-400 mb-1">SHA-256</div>
-                            <div class="text-sm text-gray-400">Integridade verificável</div>
-                            <div class="text-xs text-gray-500 mt-2">Confere o encadeamento dos hashes dos logs</div>
-                        </div>
-                    </div>
                 </div>
+
+            -->
             </div>
         </section>
 
-        <!-- Simulador ROI -->
-        <section id="simulador" class="py-20 matrix-bg">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section id="ods" class="py-20 relative" aria-labelledby="ods-titulo">
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="text-center mb-12">
-                    <span class="text-blue-400 font-mono text-sm tracking-wider">SIMULAÇÃO ESTRATÉGICA</span>
-                    <h2 class="text-4xl font-bold mt-2 mb-4">Calculadora de Sensibilidade</h2>
+                    <span class="text-emerald-400 font-mono text-sm tracking-wider">AGENDA 2030</span>
+                    <h2 id="ods-titulo" class="text-4xl font-bold mt-2 mb-4">ODS relacionadas ao projeto</h2>
                     <p class="text-gray-400 max-w-2xl mx-auto">
-                        Preveja o impacto de mudanças técnicas (ΔB) na produção bruta (ΔX) e no ROI. 
-                        Justifique investimentos em automação com dados concretos para a diretoria.
+                        Os Objetivos de Desenvolvimento Sustentável (ODS) são diretrizes de uma agenda global
+                        criada pela ONU em 2015, com foco no desenvolvimento sustentável.
                     </p>
                 </div>
 
-                <div class="grid lg:grid-cols-2 gap-8">
-                    <!-- Controles -->
-                    <div class="glass rounded-2xl p-8 border border-blue-500/20">
-                        <h3 class="text-lg font-semibold text-blue-400 mb-6">Parâmetros de Simulação</h3>
-                        
-                        <div class="space-y-6">
-                            <div>
-                                <div class="flex justify-between mb-2">
-                                    <label class="text-sm text-gray-300">Eficiência de Hardware (%)</label>
-                                    <span class="text-blue-400 font-mono">{{ simulacao.hardware }}%</span>
-                                </div>
-                                <input 
-                                    v-model.number="simulacao.hardware"
-                                    type="range" 
-                                    min="0" 
-                                    max="50" 
-                                    class="slider-thumb w-full"
-                                    @input="calcularROI"
-                                >
-                                <div class="flex justify-between text-xs text-gray-500 mt-1">
-                                    <span>0%</span>
-                                    <span>Baseline</span>
-                                    <span>+50%</span>
-                                </div>
+                <!-- Cards de ODS -->
+                <ul role="list" class="grid md:grid-cols-2 gap-6">
+                    <li class="metric-card glass rounded-xl p-6 border border-blue-500/30">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-14 h-14 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-industry text-2xl text-blue-400" aria-hidden="true"></i>
                             </div>
-
                             <div>
-                                <div class="flex justify-between mb-2">
-                                    <label class="text-sm text-gray-300">Economia de Energia (%)</label>
-                                    <span class="text-blue-400 font-mono">{{ simulacao.energia }}%</span>
-                                </div>
-                                <input 
-                                    v-model.number="simulacao.energia"
-                                    type="range" 
-                                    min="0" 
-                                    max="40" 
-                                    class="slider-thumb w-full"
-                                    @input="calcularROI"
-                                >
-                            </div>
-
-                            <div>
-                                <div class="flex justify-between mb-2">
-                                    <label class="text-sm text-gray-300">Automação de Processos (%)</label>
-                                    <span class="text-blue-400 font-mono">{{ simulacao.automacao }}%</span>
-                                </div>
-                                <input 
-                                    v-model.number="simulacao.automacao"
-                                    type="range" 
-                                    min="0" 
-                                    max="60" 
-                                    class="slider-thumb w-full"
-                                    @input="calcularROI"
-                                >
-                            </div>
-
-                            <div>
-                                <div class="flex justify-between mb-2">
-                                    <label class="text-sm text-gray-300">Investimento Inicial (R$)</label>
-                                    <span class="text-blue-400 font-mono">R$ {{ formatMoney(simulacao.investimento) }}</span>
-                                </div>
-                                <input 
-                                    v-model.number="simulacao.investimento"
-                                    type="range" 
-                                    min="100000" 
-                                    max="5000000" 
-                                    step="100000"
-                                    class="slider-thumb w-full"
-                                    @input="calcularROI"
-                                >
+                                <div class="font-mono text-sm tracking-wider text-blue-400">ODS 9</div>
+                                <h3 class="text-lg font-semibold leading-snug">Indústria, inovação e infraestrutura</h3>
                             </div>
                         </div>
+                        <p class="text-gray-400 text-sm mb-4">
+                            Construir infraestruturas resilientes, promover a industrialização inclusiva e sustentável
+                            e fomentar a inovação.
+                        </p>
+                        <p class="text-gray-400 text-xs border-t border-gray-700 pt-3">
+                            <span class="text-blue-400 font-semibold">No projeto:</span>
+                            protótipo de ferramenta digital para analisar a relação entre setores de TI.
+                        </p>
+                    </li>
 
-                        <div class="mt-6 p-4 bg-blue-500/10 rounded-lg border border-blue-500/30">
-                            <div class="text-sm text-blue-400 mb-2">Fórmula Aplicada:</div>
-                            <div class="font-mono text-sm text-gray-300">
-                                ΔX = (I - C - ΔB)<sup>-1</sup> · d - X₀
+                    <li class="metric-card glass rounded-xl p-6 border border-emerald-500/30">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-14 h-14 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-recycle text-2xl text-emerald-400" aria-hidden="true"></i>
+                            </div>
+                            <div>
+                                <div class="font-mono text-sm tracking-wider text-emerald-400">ODS 12</div>
+                                <h3 class="text-lg font-semibold leading-snug">Consumo e produção responsáveis</h3>
                             </div>
                         </div>
-                    </div>
+                        <p class="text-gray-400 text-sm mb-4">
+                            Assegurar padrões de produção e de consumo sustentáveis.
+                        </p>
+                        <p class="text-gray-400 text-xs border-t border-gray-700 pt-3">
+                            <span class="text-emerald-400 font-semibold">No projeto:</span>
+                            modelo insumo-produto que mostra quanto cada setor precisa produzir para atender a uma demanda.
+                        </p>
+                    </li>
+                </ul>
 
-                    <!-- Resultados -->
-                    <div class="space-y-6">
-                        <div class="glass rounded-2xl p-6 border border-emerald-500/20">
-                            <h4 class="font-semibold text-emerald-400 mb-4">Projeção de Resultados</h4>
-                            
-                            <div class="grid grid-cols-2 gap-4 mb-6">
-                                <div class="p-4 bg-dark-light rounded-lg text-center">
-                                    <div class="text-3xl font-bold text-emerald-400 font-mono">{{ resultado.roi }}%</div>
-                                    <div class="text-xs text-gray-400 mt-1">ROI Estimado</div>
-                                </div>
-                                <div class="p-4 bg-dark-light rounded-lg text-center">
-                                    <div class="text-3xl font-bold text-blue-400 font-mono">{{ resultado.payback }}</div>
-                                    <div class="text-xs text-gray-400 mt-1">Payback (meses)</div>
-                                </div>
-                            </div>
-
-                            <div class="space-y-3">
-                                <div class="flex justify-between items-center p-3 bg-dark-light rounded-lg">
-                                    <span class="text-sm text-gray-400">Variação Produção (ΔX):</span>
-                                    <span class="text-emerald-400 font-mono font-bold">+{{ resultado.deltaX }}%</span>
-                                </div>
-                                <div class="flex justify-between items-center p-3 bg-dark-light rounded-lg">
-                                    <span class="text-sm text-gray-400">Economia Anual:</span>
-                                    <span class="text-emerald-400 font-mono font-bold">R$ {{ formatMoney(resultado.economia) }}</span>
-                                </div>
-                                <div class="flex justify-between items-center p-3 bg-dark-light rounded-lg">
-                                    <span class="text-sm text-gray-400">Redução CO₂:</span>
-                                    <span class="text-emerald-400 font-mono font-bold">-{{ resultado.co2 }}%</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="glass rounded-2xl p-6 border border-emerald-500/20">
-                            <h4 class="font-semibold text-emerald-400 mb-4">Análise de Sensibilidade</h4>
-                            <canvas id="sensitivityChart" height="200"></canvas>
-                        </div>
-
-                        <button @click="exportSimulation" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-xl font-semibold transition shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2">
-                            <i class="fas fa-file-pdf"></i>
-                            Exportar Proposta para Diretoria
-                        </button>
-                    </div>
-                </div>
+                <p class="text-center text-xs text-gray-500 mt-6">
+                    Alinhamento conceitual do protótipo acadêmico, sem certificação.
+                </p>
             </div>
         </section>
 
@@ -988,60 +547,7 @@
             </div>
         </section>
 
-        <!-- CTA Final -->
-        <section class="py-20 relative overflow-hidden">
-            <div class="absolute inset-0 bg-gradient-to-r from-emerald-900/40 via-purple-900/40 to-emerald-900/40"></div>
-            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-                <h2 class="text-4xl font-bold mb-6">Protótipo em Evolução</h2>
-                <p class="text-xl text-gray-400 mb-8">
-                    O EcoBalance Ledger é um protótipo acadêmico em desenvolvimento. 
-                    Unimos contabilidade de custos, TI Verde e ciência econômica em uma única interface.
-                </p>
-                
-                <div class="flex flex-wrap justify-center gap-4 mb-12">
-                    <div class="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
-                        <i class="fab fa-node-js"></i>
-                        <span class="text-sm">Node.js + Express</span>
-                    </div>
-                    <div class="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400">
-                        <i class="fas fa-database"></i>
-                        <span class="text-sm">PostgreSQL (Neon)</span>
-                    </div>
-                    <div class="flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-400">
-                        <i class="fas fa-link"></i>
-                        <span class="text-sm">Log com hash SHA-256</span>
-                    </div>
-                    <div class="flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-400">
-                        <i class="fas fa-user-shield"></i>
-                        <span class="text-sm">Acesso por perfil (JWT)</span>
-                    </div>
-                </div>
-            
-            <!--
-                <div class="glass rounded-2xl p-8 border border-emerald-500/20 inline-block max-w-full">
-                    <div class="text-sm text-gray-400 mb-4">Repositório GitHub</div>
-                    <div class="flex items-center gap-4 flex-wrap justify-center">
-                        <div class="w-24 h-24 bg-white rounded-lg p-2 flex-shrink-0">
-                            <div class="w-full h-full bg-gradient-to-br from-emerald-500 to-blue-500 rounded flex items-center justify-center text-white text-xs font-mono">
-                                <i class="fas fa-qrcode text-4xl"></i>
-                            </div>
-                        </div>
-                        <div class="text-left">
-                            <div class="text-emerald-400 font-mono text-sm mb-1">git clone</div>
-                            <div class="text-white font-mono text-xs bg-dark-light px-3 py-2 rounded border border-gray-700 break-all">
-                                github.com/Gomide-Gabriel/Ecobalance_Teste_Reorganizando
-                            </div>
-                            <div class="mt-2 text-xs text-gray-500">
-                                <i class="fas fa-download mr-1"></i>
-                                Código-fonte público
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            -->
-            </div>
-        </section>
+        
 
         <!-- Footer -->
         <footer class="border-t border-gray-800 bg-dark-light/50 backdrop-blur-lg">
@@ -1090,6 +596,14 @@
                             <li class="flex items-center gap-2">
                                 <i class="fas fa-envelope text-emerald-500"></i>
                                 <span>adriano.rodrigues365@outlook.com</span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <i class="fas fa-envelope text-emerald-500"></i>
+                                <span>gustavo.silva166@aluno.cps.sp.gov.br</span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <i class="fas fa-envelope text-emerald-500"></i>
+                                <span>gabriel.babo@aluno.cps.sp.gov.br</span>
                             </li>
                             <li class="flex items-center gap-2">
                                 <i class="fas fa-map-marker-alt text-emerald-500"></i>
