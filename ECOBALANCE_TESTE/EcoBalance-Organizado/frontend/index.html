@@ -223,6 +223,96 @@
             .mobile-hidden { display: none; }
         }
 
+        /* ===== Arquitetura da solução (hero) ===== */
+        .arq {
+            --arq-panel: rgba(15, 23, 42, 0.55);
+            --arq-line: rgba(255, 255, 255, 0.12);
+            --arq-text: #f8fafc;
+            --arq-muted: #94a3b8;
+            --arq-node-bg: #0f172a;
+            --arq-hover: rgba(255, 255, 255, 0.05);
+            --acesso: #38bdf8;
+            --calculo: #10b981;
+            --registro: #a78bfa;
+            background: var(--arq-panel);
+            border: 1px solid var(--arq-line);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+        html[data-theme="light"] .arq {
+            --arq-panel: rgba(255, 255, 255, 0.85);
+            --arq-line: rgba(15, 23, 42, 0.14);
+            --arq-text: #0f172a;
+            --arq-muted: #475569;
+            --arq-node-bg: #ffffff;
+            --arq-hover: rgba(15, 23, 42, 0.04);
+            --acesso: #0369a1;
+            --calculo: #047857;
+            --registro: #6d28d9;
+        }
+        .arq-titulo { color: var(--arq-text); font-size: 1.25rem; font-weight: 700; }
+        .arq-sub { color: var(--arq-muted); font-size: 0.875rem; margin-top: 0.25rem; }
+
+        .arq-lista { position: relative; margin-top: 1.5rem; list-style: none; }
+        /* trilho que liga as etapas: acesso -> cálculo -> registro */
+        .arq-lista::before {
+            content: '';
+            position: absolute;
+            left: 1.125rem; top: 1.25rem; bottom: 1.25rem;
+            width: 2px; transform: translateX(-1px);
+            background: linear-gradient(to bottom, var(--acesso) 0%, var(--acesso) 28%, var(--calculo) 36%, var(--calculo) 48%, var(--registro) 58%, var(--registro) 100%);
+            opacity: 0.55;
+        }
+        .arq-fase { font-size: 0.75rem; font-weight: 600; margin: 1.1rem 0 0.35rem 3.25rem; color: var(--c); }
+        .arq-fase:first-child { margin-top: 0; }
+
+        .arq-item { position: relative; }
+        .arq-item[data-fase="acesso"]   { --c: var(--acesso); }
+        .arq-item[data-fase="calculo"]  { --c: var(--calculo); }
+        .arq-item[data-fase="registro"] { --c: var(--registro); }
+        .arq-fase[data-fase="acesso"]   { --c: var(--acesso); }
+        .arq-fase[data-fase="calculo"]  { --c: var(--calculo); }
+        .arq-fase[data-fase="registro"] { --c: var(--registro); }
+
+        .arq-btn {
+            display: flex; align-items: center; gap: 0.875rem;
+            width: 100%; text-align: left;
+            padding: 0.5rem 0.75rem 0.5rem 0;
+            border-radius: 0.75rem;
+            color: var(--arq-text);
+            background: transparent; border: 0; cursor: pointer;
+        }
+        .arq-btn:hover { background: var(--arq-hover); }
+        .arq-no {
+            flex: none; width: 2.25rem; height: 2.25rem;
+            display: grid; place-items: center;
+            border-radius: 9999px;
+            background: var(--arq-node-bg);
+            border: 2px solid var(--c);
+            color: var(--c); font-size: 0.9rem;
+            position: relative; z-index: 1;
+            transition: background-color .2s, color .2s;
+        }
+        .arq-item.aberto .arq-no { background: var(--c); color: var(--arq-node-bg); }
+        .arq-nome { flex: 1; font-weight: 600; font-size: 0.95rem; line-height: 1.3; }
+        .arq-tag {
+            flex: none; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
+            color: var(--c); border: 1px solid var(--c); border-radius: 0.375rem;
+            padding: 0.1rem 0.4rem;
+        }
+        .arq-seta { flex: none; color: var(--arq-muted); font-size: 0.7rem; transition: transform .2s; }
+        .arq-item.aberto .arq-seta { transform: rotate(180deg); }
+
+        .arq-corpo { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .25s ease; }
+        .arq-item.aberto .arq-corpo { grid-template-rows: 1fr; }
+        .arq-corpo > div { overflow: hidden; }
+        .arq-texto { margin: 0.1rem 0 0.25rem 3.125rem; padding: 0.25rem 0.75rem 0.75rem 0; color: var(--arq-muted); font-size: 0.875rem; line-height: 1.55; }
+        .arq-quem { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-top: 0.6rem; }
+        .arq-quem span { font-size: 0.75rem; color: var(--arq-text); border: 1px solid var(--arq-line); border-radius: 9999px; padding: 0.1rem 0.6rem; }
+        .arq-dica { color: var(--arq-muted); font-size: 0.75rem; margin-top: 1rem; }
+        @media (max-width: 480px) { .arq-tag { display: none; } }
+
         /* ===== Acessibilidade ===== */
         .skip-link { position: absolute; left: -999px; top: 0; z-index: 2000; background: #10b981; color: #04130d; padding: .6rem 1rem; font-weight: 600; }
         .skip-link:focus { left: 8px; top: 8px; }
@@ -249,6 +339,7 @@
         html[data-theme="light"] .text-emerald-500,
         html[data-theme="light"] .hover\:text-emerald-400:hover { color: #047857 !important; }
         html[data-theme="light"] .text-blue-400 { color: #1d4ed8 !important; }
+        html[data-theme="light"] .text-red-300 { color: #b91c1c !important; }
         html[data-theme="light"] .text-red-400,
         html[data-theme="light"] .text-red-500 { color: #b91c1c !important; }
         html[data-theme="light"] .text-purple-400 { color: #6d28d9 !important; }
@@ -325,33 +416,74 @@
         <!-- Hero Section -->
         <section id="top" class="relative pt-32 pb-20 overflow-hidden matrix-bg">
 
-            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-                <h2 class="text-4xl font-bold mb-6">O que é o projeto</h2>
-                <p class="text-xl text-gray-400 mb-8">
-                    O EcoBalance Ledger é um protótipo acadêmico em desenvolvido por alunos da <spam class="text-red-300">FATEC Zona Leste</spam>. 
-                    
-                    Unimos contabilidade de custos, TI Verde e ciência econômica em uma única interface.
-                </p>
-                
-                <div class="flex flex-wrap justify-center gap-4 mb-12">
-                    <div class="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
-                        <i class="fab fa-node-js"></i>
-                        <span class="text-sm">Node.js + Express</span>
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                <div class="grid lg:grid-cols-2 gap-10 lg:gap-14 items-start">
+
+                    <!-- Texto de apresentação -->
+                    <div class="lg:pt-6">
+                        <h2 class="text-4xl font-bold mb-6">O que é o projeto</h2>
+                        <p class="text-xl text-gray-400 mb-8">
+                            O EcoBalance Ledger é um protótipo acadêmico desenvolvido por alunos da <span class="text-red-300">FATEC Zona Leste</span>.
+                            Unimos contabilidade de custos, TI Verde e ciência econômica em uma única interface.
+                        </p>
+
+                        <div class="flex flex-wrap gap-3 mb-10">
+                            <div class="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                                <i class="fab fa-node-js"></i>
+                                <span class="text-sm">Node.js + Express</span>
+                            </div>
+                            <div class="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400">
+                                <i class="fas fa-database"></i>
+                                <span class="text-sm">PostgreSQL (Neon)</span>
+                            </div>
+                            <div class="flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-400">
+                                <i class="fas fa-link"></i>
+                                <span class="text-sm">Log com hash SHA-256</span>
+                            </div>
+                            <div class="flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-400">
+                                <i class="fas fa-user-shield"></i>
+                                <span class="text-sm">Acesso por perfil (JWT)</span>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-3">
+                            <a @click.prevent="scrollTo('dashboard')" href="#dashboard" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-medium transition shadow-lg shadow-emerald-500/30">Ver o dashboard</a>
+                            <a href="/login.html" class="glass px-6 py-3 rounded-lg font-medium text-gray-300 hover:text-emerald-400 transition">Entrar</a>
+                        </div>
                     </div>
-                    <div class="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400">
-                        <i class="fas fa-database"></i>
-                        <span class="text-sm">PostgreSQL (Neon)</span>
-                    </div>
-                    <div class="flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-400">
-                        <i class="fas fa-link"></i>
-                        <span class="text-sm">Log com hash SHA-256</span>
-                    </div>
-                    <div class="flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-400">
-                        <i class="fas fa-user-shield"></i>
-                        <span class="text-sm">Acesso por perfil (JWT)</span>
-                    </div>
+
+                    <!-- Arquitetura da solução -->
+                    <aside class="arq" aria-labelledby="arq-titulo">
+                        <h3 id="arq-titulo" class="arq-titulo">Como o sistema funciona</h3>
+                        <p class="arq-sub">Do cadastro até o registro auditável de cada cálculo.</p>
+
+                        <ol class="arq-lista">
+                            <template v-for="(etapa, i) in arquitetura" :key="etapa.titulo">
+                                <li v-if="i === 0 || arquitetura[i - 1].fase !== etapa.fase" class="arq-fase" :data-fase="etapa.fase" aria-hidden="true">{{ fases[etapa.fase] }}</li>
+                                <li class="arq-item" :class="{ aberto: arqAberta === i }" :data-fase="etapa.fase">
+                                    <button type="button" class="arq-btn" @click="alternarArq(i)" :aria-expanded="arqAberta === i" :aria-controls="'arq-corpo-' + i">
+                                        <span class="arq-no"><i :class="etapa.icon" aria-hidden="true"></i></span>
+                                        <span class="arq-nome">{{ etapa.titulo }}</span>
+                                        <span class="arq-tag">{{ etapa.tag }}</span>
+                                        <i class="fas fa-chevron-down arq-seta" aria-hidden="true"></i>
+                                    </button>
+                                    <div class="arq-corpo" :id="'arq-corpo-' + i">
+                                        <div>
+                                            <div class="arq-texto">
+                                                {{ etapa.texto }}
+                                                <div class="arq-quem"><span v-for="q in etapa.quem" :key="q">{{ q }}</span></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </li>
+                            </template>
+                        </ol>
+                        <p class="arq-dica">Clique em uma etapa para ver o que acontece nela.</p>
+                    </aside>
+
                 </div>
-            
+            </div>
+
             <!--
                 <div class="glass rounded-2xl p-8 border border-emerald-500/20 inline-block max-w-full">
                     <div class="text-sm text-gray-400 mb-4">Repositório GitHub</div>
@@ -375,7 +507,6 @@
                 </div>
 
             -->
-            </div>
         </section>
 
         <section id="ods" class="py-20 relative" aria-labelledby="ods-titulo">
@@ -435,7 +566,10 @@
                     Alinhamento conceitual do protótipo acadêmico, sem certificação.
                 </p>
             </div>
+            
         </section>
+
+        
 
         <!-- Dashboard ESG 2015-2025 -->
         <section id="dashboard" class="py-20 relative">
@@ -657,6 +791,31 @@
                 const activeMetric = ref('emissao');
                 const currentBlock = ref('7F8C8D');
                 const toast = ref({ show: false, message: '', type: 'success' });
+
+                // Arquitetura da solução (hero)
+                const fases = { acesso: 'Acesso', calculo: 'Cálculo', registro: 'Registro e auditoria' };
+                const arquitetura = [
+                    { fase: 'acesso', icon: 'fas fa-user-plus', titulo: 'Cadastro e login', tag: 'JWT',
+                      texto: 'Cada pessoa cria uma conta e entra com e-mail e senha. A sessão é identificada por um token JWT, e quem esquece a senha pode redefini-la por um link enviado ao e-mail.',
+                      quem: ['Todos os perfis'] },
+                    { fase: 'acesso', icon: 'fas fa-user-shield', titulo: 'Controle de acesso por perfil', tag: 'Perfis',
+                      texto: 'O que a pessoa vê e pode fazer depende do perfil escolhido no cadastro.',
+                      quem: ['Stakeholder', 'Analista', 'Auditor'] },
+                    { fase: 'calculo', icon: 'fas fa-project-diagram', titulo: 'Modelo de Leontief', tag: 'Insumo-produto',
+                      texto: 'O Analista ajusta a matriz de coeficientes e as metas ESG. O sistema calcula a produção necessária em cada setor e a produção total.',
+                      quem: ['Analista'] },
+                    { fase: 'registro', icon: 'fas fa-database', titulo: 'Registro no banco', tag: 'PostgreSQL',
+                      texto: 'O cálculo oficial é gravado no banco de dados com o número da simulação e do log, para poder ser consultado depois.',
+                      quem: ['Analista'] },
+                    { fase: 'registro', icon: 'fas fa-link', titulo: 'Encadeamento de hashes', tag: 'SHA-256',
+                      texto: 'Cada registro guarda o hash do registro anterior. Se alguém alterar um deles, a cadeia deixa de bater e a mudança aparece.',
+                      quem: ['Automático'] },
+                    { fase: 'registro', icon: 'fas fa-clipboard-check', titulo: 'Auditoria e validação', tag: 'Cadeia',
+                      texto: 'Analistas e Auditores verificam a integridade da cadeia. O Auditor aprova ou rejeita cada registro.',
+                      quem: ['Auditor', 'Analista'] }
+                ];
+                const arqAberta = ref(0);
+                const alternarArq = (i) => { arqAberta.value = arqAberta.value === i ? -1 : i; };
 
                 // Dados da Matriz Leontief
                 const matrixCols = ['Hardware', 'Cloud', 'Auto', 'Papel', 'TI Verde'];
@@ -1060,6 +1219,7 @@
 
                 return {
                     mobileMenu,
+                    fases, arquitetura, arqAberta, alternarArq,
                     activeMetric,
                     currentBlock,
                     toast,

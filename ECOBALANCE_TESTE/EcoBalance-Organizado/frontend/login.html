@@ -148,7 +148,7 @@
     </h2>
 
     <p class="text-sm text-gray-400 mb-4">
-      Informe seu e-mail para registrar uma solicitação.
+      Informe o e-mail da sua conta. Se ele estiver cadastrado, você receberá um link para criar uma nova senha.
     </p>
 
     <label class="block text-sm">
@@ -176,11 +176,44 @@
       {{ mensagemRecuperacao }}
     </p>
 
+    <p v-if="linkDemo" class="mt-3 text-sm text-gray-300">
+      Modo demonstração:
+      <a :href="linkDemo" class="text-emerald-400 underline">abrir link de redefinição</a>
+    </p>
+
     <button
       @click="modo='login'"
       class="w-full mt-4 text-sm text-gray-400 hover:text-white underline"
     >
       Voltar para login
+    </button>
+  </section>
+
+  <!-- REDEFINIR SENHA (chega pelo link com ?token=...) -->
+
+  <section v-if="!logado && modo === 'redefinir'" class="card p-6 max-w-md">
+    <h2 class="text-lg font-semibold mb-4">Definir nova senha</h2>
+
+    <div v-if="!redefinida">
+      <label class="block text-sm">Nova senha (mínimo 8 caracteres)
+        <input v-model="novaSenha" type="password" autocomplete="new-password"
+               class="mt-1 w-full px-3 py-2 rounded border border-gray-600 text-white" style="background:#0f172a">
+      </label>
+      <label class="block text-sm mt-3">Confirmar nova senha
+        <input v-model="confirmaSenha" type="password" autocomplete="new-password" @keyup.enter="redefinirSenha"
+               class="mt-1 w-full px-3 py-2 rounded border border-gray-600 text-white" style="background:#0f172a">
+      </label>
+      <button @click="redefinirSenha" :disabled="carregando || !novaSenha || !confirmaSenha"
+              class="w-full mt-4 py-2 rounded font-medium bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50">
+        {{ carregando ? 'Salvando...' : 'Salvar nova senha' }}
+      </button>
+    </div>
+
+    <p v-else class="text-sm text-emerald-300">{{ mensagemRedefinicao }}</p>
+
+    <button @click="modo='login'; erro=''; redefinida=false"
+            class="w-full mt-4 text-sm text-gray-400 hover:text-white underline">
+      {{ redefinida ? 'Ir para o login' : 'Voltar para login' }}
     </button>
   </section>
   
@@ -941,49 +974,6 @@
 
     </div>
 
-    <!-- Arquitetura -->
-    <div class="card p-8">
-      <h2 class="text-2xl font-bold text-emerald-400 mb-6">
-        Arquitetura da Solução
-      </h2>
-
-      <div class="space-y-4">
-        <div class="card p-4">
-          <strong>1.</strong>
-          Cadastro e autenticação dos usuários.
-        </div>
-
-        <div class="card p-4">
-          <strong>2.</strong>
-          Controle de acesso por perfil
-          (Stakeholder, Analista e Auditor).
-        </div>
-
-        <div class="card p-4">
-          <strong>3.</strong>
-          Modelagem matemática através do Modelo
-          Insumo-Produto de Leontief.
-        </div>
-
-        <div class="card p-4">
-          <strong>4.</strong>
-          Registro das simulações oficiais em banco de dados.
-        </div>
-
-        <div class="card p-4">
-          <strong>5.</strong>
-          Encadeamento de hashes para rastreabilidade.
-        </div>
-
-        <div class="card p-4">
-          <strong>6.</strong>
-          Auditoria e validação dos resultados.
-        </div>
-
-      </div>
-
-    </div>
-
     
 
   </section>
@@ -1147,6 +1137,12 @@ createApp({
     });
 
     const emailRecuperacao = ref('');
+    const linkDemo = ref('');
+    const tokenReset = ref('');
+    const novaSenha = ref('');
+    const confirmaSenha = ref('');
+    const redefinida = ref(false);
+    const mensagemRedefinicao = ref('');
     const mensagemRecuperacao = ref('');
 
 
@@ -1417,27 +1413,12 @@ createApp({
       ).toFixed(1);
     });
 
+    // Produção Total = soma da produção de cada setor (já ajustada pelo fator ESG).
+    // Assim o total sempre fecha com a tabela "Resultado da Simulação" e com o PDF.
     const producaoTotal = computed(() => {
-
-      const totalDemanda = matrix.value.reduce(
-        (acc, row) => acc + Number(row.demanda || 0),
-        0
-      );
-
-      const mediaCoef =
-          matrix.value.reduce((acc, row) => {
-            const somaLinha =
-              row.valores.reduce((a, v) => a + Number(v || 0), 0);
-
-            return acc + somaLinha / row.valores.length;
-
-          }, 0) / matrix.value.length;
-
-        return (
-          totalDemanda /
-          Math.max(0.05, (1 - mediaCoef))
-        ).toFixed(2);
-
+      return resultadoSetores.value
+        .reduce((acc, setor) => acc + Number(setor.producao || 0), 0)
+        .toFixed(2);
     });
 
     const nivelESG = computed(() => {
@@ -1617,6 +1598,7 @@ createApp({
     async function solicitarRecuperacao() {
       erro.value = '';
       mensagemRecuperacao.value = '';
+      linkDemo.value = '';
       carregando.value = true;
 
       try {
@@ -1629,8 +1611,31 @@ createApp({
         });
 
         mensagemRecuperacao.value = resposta.message;
+        linkDemo.value = resposta.link || '';
         emailRecuperacao.value = '';
 
+      } catch (e) {
+        erro.value = e.message;
+      } finally {
+        carregando.value = false;
+      }
+    }
+
+    async function redefinirSenha() {
+      erro.value = '';
+      if (novaSenha.value.length < 8) { erro.value = 'A senha deve ter pelo menos 8 caracteres.'; return; }
+      if (novaSenha.value !== confirmaSenha.value) { erro.value = 'As senhas não conferem.'; return; }
+      carregando.value = true;
+      try {
+        const r = await api('/api/auth/redefinir-senha', {
+          method: 'POST',
+          body: JSON.stringify({ token: tokenReset.value, novaSenha: novaSenha.value })
+        });
+        mensagemRedefinicao.value = r.message;
+        redefinida.value = true;
+        tokenReset.value = '';
+        novaSenha.value = '';
+        confirmaSenha.value = '';
       } catch (e) {
         erro.value = e.message;
       } finally {
@@ -1740,12 +1745,23 @@ createApp({
       verificacao.value = null;
     }
 
-    onMounted(() => { if (token.value) recarregar(); });
+    onMounted(() => {
+      // link de redefinição: login.html?token=...
+      const t = new URLSearchParams(location.search).get('token');
+      if (t) {
+        if (token.value) sair(); // encerra sessão aberta para mostrar a tela
+        tokenReset.value = t;
+        modo.value = 'redefinir';
+        history.replaceState(null, '', location.pathname); // tira o token da URL
+        return;
+      }
+      if (token.value) recarregar();
+    });
 
     return { email, senha, carregando, erro, setores, colunas, logado, perfil, entrar, recarregar, sair, 
              modo, cadastro, cadastrar, simulacao, roiEstimado, payback, co2Reduzido,
              matrix, matrixCols, producaoTotal, resetMatrix, exportarPDF, resultadoSetores, nivelESG, diagnostico,
-             emailRecuperacao,mensagemRecuperacao, solicitarRecuperacao, aba, ano, demanda, 
+             emailRecuperacao,mensagemRecuperacao, solicitarRecuperacao, linkDemo, novaSenha, confirmaSenha, redefinida, mensagemRedefinicao, redefinirSenha, aba, ano, demanda, 
              resultado, ehAnalista, idKey, nomeKey, calcular, nomeDoSetor,
              logs, filtro, verificacao, ehAuditor, podeVerificar, fmtData, corStatus,
              recarregarLogs, abrirLogs, verificarCadeia, decidir };

@@ -11,6 +11,7 @@ const { spawn } = require('child_process');
 const { Pool } = require('pg');
 
 const app = express();
+app.set('trust proxy', 1); // Render: usa o IP real do cliente no limitador
 
 // Conexão com o Postgres (Neon). A DATABASE_URL vem do .env local
 // ou das variáveis de ambiente configuradas no Render.
@@ -436,7 +437,6 @@ function limitar(max, janelaMs) {
 // trecho que não está retornando resposta
 app.post('/api/usuario', limitar(20, 15 * 60 * 1000), async (req, res) => {
 
-    console.log('Entrou na rota');
     try {
         let { nome, email, senha, perfil } = req.body;
 
@@ -498,44 +498,181 @@ app.post('/api/usuario', limitar(20, 15 * 60 * 1000), async (req, res) => {
 });
 
 
-// Esquecer a Senha
-app.post('/api/auth/esqueci-senha', limitar(5, 60 * 60 * 1000), async (req, res) => {
-    console.log('ROTA ESQUECI-SENHA EXECUTADA');
+// ------------------- Recuperação de senha ------------------------//
+// Fluxo: esqueci-senha registra o pedido -> um link com token é gerado
+// (DEMO_RESET=true devolve na resposta; ou use gerar_link_redefinicao.js)
+// -> redefinir-senha troca a senha. O token nunca é guardado em texto puro,
+// só o hash SHA-256; vale 30 min e só pode ser usado uma vez.
+const sha256 = (t) => crypto.createHash('sha256').update(t).digest('hex');
 
+// ---- Envio de e-mail por API HTTPS (Brevo) ----
+// O plano gratuito do Render bloqueia SMTP (portas 25/465/587); a API usa HTTPS e funciona.
+// Variáveis: BREVO_API_KEY, MAIL_FROM (remetente verificado no Brevo), MAIL_FROM_NAME, APP_URL
+const BREVO_URL = process.env.BREVO_API_URL || 'https://api.brevo.com/v3/smtp/email';
+const emailConfigurado = () => Boolean(process.env.BREVO_API_KEY && process.env.MAIL_FROM && process.env.APP_URL);
+
+async function enviarEmail({ para, assunto, html, texto }) {
+    const resp = await fetch(BREVO_URL, {
+        method: 'POST',
+        headers: {
+            'api-key': process.env.BREVO_API_KEY,
+            'content-type': 'application/json',
+            accept: 'application/json'
+        },
+        body: JSON.stringify({
+            sender: { name: process.env.MAIL_FROM_NAME || 'EcoBalance Ledger', email: process.env.MAIL_FROM },
+            to: [{ email: para }],
+            subject: assunto,
+            htmlContent: html,
+            textContent: texto
+        }),
+        signal: AbortSignal.timeout(10000)
+    });
+    if (!resp.ok) {
+        const corpo = await resp.text().catch(() => '');
+        throw new Error(`Brevo respondeu ${resp.status}: ${corpo.slice(0, 200)}`);
+    }
+}
+
+const emailRedefinicao = (link) => ({
+    assunto: 'EcoBalance Ledger - redefinição de senha',
+    texto:
+`Recebemos um pedido para redefinir a senha da sua conta no EcoBalance Ledger.
+
+Abra o link abaixo para criar uma nova senha (vale por 30 minutos e só pode ser usado uma vez):
+
+${link}
+
+Se você não fez esse pedido, ignore esta mensagem: sua senha continua a mesma.`,
+    html:
+`<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#111">
+  <h2 style="color:#059669">EcoBalance Ledger</h2>
+  <p>Recebemos um pedido para redefinir a senha da sua conta.</p>
+  <p><a href="${link}" style="display:inline-block;background:#059669;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none">Criar nova senha</a></p>
+  <p style="font-size:13px;color:#555">O link vale por 30 minutos e só pode ser usado uma vez.<br>
+  Se você não fez esse pedido, ignore esta mensagem: sua senha continua a mesma.</p>
+</div>`
+});
+
+const emailSenhaAlterada = () => ({
+    assunto: 'EcoBalance Ledger - sua senha foi alterada',
+    texto: 'A senha da sua conta no EcoBalance Ledger acabou de ser alterada. Se não foi você, entre em contato com o administrador imediatamente.',
+    html: '<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#111"><h2 style="color:#059669">EcoBalance Ledger</h2><p>A senha da sua conta acabou de ser alterada.</p><p style="font-size:13px;color:#555">Se não foi você, entre em contato com o administrador imediatamente.</p></div>'
+});
+
+app.post('/api/auth/esqueci-senha', limitar(5, 60 * 60 * 1000), async (req, res) => {
     const email = normEmail(req.body?.email);
 
-    const resposta = {
-        message:
-            'Se o e-mail estiver cadastrado, o pedido foi registrado.'
-        };
+    // Mesma resposta exista o e-mail ou não (não revela quem está cadastrado)
+    const resposta = { message: 'Se o e-mail estiver cadastrado, enviaremos as instruções de redefinição.' };
 
-    if (!emailOk(email)) {
-        return res.json(resposta);
-    }
-    try{
+    if (!emailOk(email)) return res.json(resposta);
+
+    try {
         const usuario = await pool.query('SELECT 1 FROM usuarios WHERE lower(email) = $1', [email]);
-        console.log('Email recebido:', email);
-        console.log('Usuario encontrado:', usuario.rows.length);
-
         if (usuario.rows.length) {
-            console.log('Tentando gravar pedido...');
+            // invalida links anteriores ainda abertos
+            await pool.query(
+                `UPDATE pedidos_redefinicao SET expira_em = now()
+                 WHERE lower(email) = $1 AND usado_em IS NULL AND token_hash IS NOT NULL`, [email]);
 
-            await pool.query('INSERT INTO pedidos_redefinicao (email) VALUES ($1)', [email]);
+            const enviar = emailConfigurado();
+            if (enviar || process.env.DEMO_RESET === 'true') {
+                const token = crypto.randomBytes(32).toString('hex');
+                await pool.query(
+                    `INSERT INTO pedidos_redefinicao (email, token_hash, expira_em)
+                     VALUES ($1, $2, now() + interval '30 minutes')`, [email, sha256(token)]);
 
-            console.log('Pedido registrado');
-         }
-
+                if (enviar) {
+                    // E-mail real. O link usa APP_URL (nunca o cabeçalho Host, que o cliente controla).
+                    const link = `${process.env.APP_URL.replace(/\/$/, '')}/login.html?token=${token}`;
+                    const m = emailRedefinicao(link);
+                    // Sem await: a resposta sai na mesma velocidade com e-mail existente ou não.
+                    enviarEmail({ para: email, assunto: m.assunto, html: m.html, texto: m.texto })
+                        .catch(async (e) => {
+                            console.error('Falha ao enviar e-mail de redefinição:', e.message);
+                            // se não saiu, invalida o token para não ficar um link "órfão" válido
+                            await pool.query('UPDATE pedidos_redefinicao SET expira_em = now() WHERE token_hash = $1', [sha256(token)]).catch(() => {});
+                        });
+                } else {
+                    // MODO DEMONSTRAÇÃO (sem provedor de e-mail): devolve o link na resposta.
+                    // Não use em produção: revela que o e-mail existe e entrega o link a quem pediu.
+                    const base = (process.env.APP_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+                    resposta.link = `${base}/login.html?token=${token}`;
+                }
+            } else {
+                // Sem e-mail nem demo: só registra o pedido; o link sai por gerar_link_redefinicao.js
+                await pool.query('INSERT INTO pedidos_redefinicao (email) VALUES ($1)', [email]);
+            }
+        }
     } catch (err) {
-        console.error(err);
+        console.error('Erro em esqueci-senha:', err.message);
     }
 
     return res.json(resposta);
 });
 
+app.post('/api/auth/redefinir-senha', limitar(10, 15 * 60 * 1000), async (req, res) => {
+    const { token, novaSenha } = req.body || {};
+
+    if (typeof token !== 'string' || !/^[0-9a-f]{64}$/.test(token)) {
+        return res.status(400).json({ message: 'Link inválido ou expirado.' });
+    }
+    if (typeof novaSenha !== 'string' || novaSenha.length < 8) {
+        return res.status(400).json({ message: 'A senha deve ter pelo menos 8 caracteres.' });
+    }
+    if (Buffer.byteLength(novaSenha, 'utf8') > 72) { // limite do bcrypt
+        return res.status(400).json({ message: 'A senha deve ter no máximo 72 caracteres.' });
+    }
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // trava o pedido para que o mesmo link não seja usado duas vezes ao mesmo tempo
+        const { rows } = await client.query(
+            `SELECT id_pedido, email FROM pedidos_redefinicao
+              WHERE token_hash = $1 AND usado_em IS NULL AND expira_em > now()
+              FOR UPDATE`, [sha256(token)]);
+        if (!rows.length) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ message: 'Link inválido ou expirado.' });
+        }
+
+        const senha_hash = await bcrypt.hash(novaSenha, 10);
+        const upd = await client.query(
+            'UPDATE usuarios SET senha_hash = $1 WHERE lower(email) = lower($2)',
+            [senha_hash, rows[0].email]);
+        if (!upd.rowCount) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ message: 'Link inválido ou expirado.' });
+        }
+
+        await client.query(
+            'UPDATE pedidos_redefinicao SET usado_em = now(), atendido_em = now() WHERE id_pedido = $1',
+            [rows[0].id_pedido]);
+        await client.query('COMMIT');
+
+        if (emailConfigurado()) {
+            const m = emailSenhaAlterada();
+            enviarEmail({ para: rows[0].email, assunto: m.assunto, html: m.html, texto: m.texto })
+                .catch((e) => console.error('Falha ao enviar aviso de senha alterada:', e.message));
+        }
+
+        return res.json({ message: 'Senha redefinida com sucesso. Faça login com a nova senha.' });
+    } catch (err) {
+        await client.query('ROLLBACK').catch(() => {});
+        console.error('Erro em redefinir-senha:', err.message);
+        return res.status(500).json({ message: 'Erro ao redefinir a senha.' });
+    } finally {
+        client.release();
+    }
+});
+
 
 // ------------------------- Login ------------------------------//
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', limitar(20, 15 * 60 * 1000), async (req, res) => {
     const { email, senha } = req.body;
     if (!email || !senha) return res.status(400).json({ message: 'email e senha são obrigatórios.' });
     try {
