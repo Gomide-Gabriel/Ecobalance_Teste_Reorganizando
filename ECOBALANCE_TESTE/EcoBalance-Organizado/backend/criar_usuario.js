@@ -20,7 +20,7 @@ const pool = new Pool({
     try {
         const hash = await bcrypt.hash(senha, 10);
         const { rows } = await pool.query(
-            'INSERT INTO usuarios (nome, email, senha_hash, perfil) VALUES ($1,$2,$3,$4) RETURNING id_usuario, email, perfil',
+            'INSERT INTO usuarios (nome, email, senha_hash, perfil, email_verificado) VALUES ($1,$2,$3,$4,true) RETURNING id_usuario, email, perfil',
             [nome, email, hash, perfil]);
         console.log('Criado:', rows[0]);
     } catch (err) {

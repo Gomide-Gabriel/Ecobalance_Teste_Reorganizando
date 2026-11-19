@@ -68,13 +68,37 @@ const rodarPython = (entrada) => new Promise((resolve, reject) => {
     proc.stderr.on('data', (d) => console.error('leontief_calc.py:', d.toString()));
     proc.on('error', reject);
     proc.stdin.on('error', () => {});
-    proc.on('close', () => {
-        try { resolve(JSON.parse(out)); }
-        catch (e) { reject(new Error('Saída inválida do leontief_calc.py')); }
+    let stderr = '';
+
+    proc.stderr.on('data', (d) => {
+    stderr += d.toString();
+    console.error('leontief_calc.py:', d.toString());
+    });
+
+    proc.on('close', (codigo) => {
+    if (codigo !== 0) {
+        return reject(
+        new Error(
+            `leontief_calc.py terminou com código ${codigo}: ${stderr.slice(0, 300)}`
+        )
+        );
+    }
+
+    try {
+        resolve(JSON.parse(out));
+    } catch {
+        reject(
+        new Error('Saída inválida do leontief_calc.py')
+        );
+    }
     });
     proc.stdin.write(JSON.stringify(entrada));
     proc.stdin.end();
 });
+
+
+
+
 
 // Cálculo de Leontief: monta a matriz do banco, grava simulação + log com hash
 app.post('/api/calculate-equilibrium', authenticateJWT, autorizar('ANALISTA'), async (req, res) => {
@@ -193,6 +217,111 @@ app.get('/api/setores/:id', authenticateJWT, async (req, res) => {
         res.status(500).json({ status: 'error', message: 'Erro ao buscar setor.' });
     }
 });
+
+// Prévia de Leontief:
+// usa a matriz e a demanda enviadas pelo dashboard,
+// mas não grava simulação nem cria log de auditoria.
+app.post(
+  '/api/calculate-preview',
+  authenticateJWT,
+  autorizar('ANALISTA'),
+  async (req, res) => {
+    const { matriz, demanda } = req.body || {};
+
+    if (!Array.isArray(matriz) || matriz.length === 0) {
+      return res.status(400).json({
+        message: 'matriz deve ser uma matriz quadrada não vazia.'
+      });
+    }
+
+    const n = matriz.length;
+
+    if (n > 50) {
+      return res.status(400).json({
+        message: 'A matriz deve ter no máximo 50 setores.'
+      });
+    }
+
+    if (!matriz.every(
+      linha => Array.isArray(linha) && linha.length === n
+    )) {
+      return res.status(400).json({
+        message: 'matriz deve ser quadrada.'
+      });
+    }
+
+    if (!Array.isArray(demanda) || demanda.length !== n) {
+      return res.status(400).json({
+        message: 'demanda deve ter um valor por setor.'
+      });
+    }
+
+    // Valida os coeficientes antes de abrir o processo Python.
+    const todosCoeficientesValidos = matriz.every(linha =>
+      linha.every(valor =>
+        typeof valor === 'number' &&
+        Number.isFinite(valor) &&
+        valor >= 0
+      )
+    );
+
+    if (!todosCoeficientesValidos) {
+      return res.status(400).json({
+        message:
+          'Todos os coeficientes devem ser números finitos maiores ou iguais a zero.'
+      });
+    }
+
+    // Valida o vetor de demanda antes de abrir o processo Python.
+    const demandaValida = demanda.every(valor =>
+      typeof valor === 'number' &&
+      Number.isFinite(valor) &&
+      valor >= 0
+    );
+
+    if (!demandaValida) {
+      return res.status(400).json({
+        message:
+          'A demanda deve conter apenas números finitos maiores ou iguais a zero.'
+      });
+    }
+
+    // Exige ao menos uma demanda positiva.
+    if (!demanda.some(valor => valor > 0)) {
+      return res.status(400).json({
+        message:
+          'Informe uma demanda maior que zero em pelo menos um setor.'
+      });
+    }
+
+    try {
+      const resultado = await rodarPython({
+        matriz,
+        demanda
+      });
+
+      if (resultado.status !== 'success') {
+        return res.status(422).json({
+          status: 'error',
+          message: resultado.message
+        });
+      }
+
+      return res.json({
+        status: 'success',
+        producao_total: resultado.producao_total,
+        raio_espectral: resultado.raio_espectral
+      });
+    } catch (err) {
+      console.error('Erro na prévia de Leontief:', err);
+
+      return res.status(500).json({
+        status: 'error',
+        message: 'Erro ao executar a prévia de Leontief.'
+      });
+    }
+  }
+);
 
 app.post('/api/setores', authenticateJWT, autorizar('ANALISTA'), async (req, res) => {
     const { nome_setor, descricao } = req.body;
@@ -411,7 +540,12 @@ app.patch('/api/logs/:id/status', authenticateJWT, autorizar('AUDITOR'), async (
 
 // ------------------------- CRUD Usuário ------------------------------//
 
-// Protegida pela variável de ambiente ADMIN_KEY. Se ela não existir, as rotas ficam desligadas.
+// Cadastro público: a conta nasce com email_verificado = false e só entra depois de
+// confirmar o e-mail (ver "Verificação de e-mail no cadastro" mais abaixo).
+
+// Cadastro público do protótipo:
+// o usuário escolhe livremente o perfil para permitir a demonstração dos três fluxos.
+// Em produção, ANALISTA e AUDITOR deverão depender de uma regra de autorização.
 const PERFIS_VALIDOS = ['STAKEHOLDER', 'ANALISTA', 'AUDITOR'];
 
 const emailOk = (e) =>
@@ -474,9 +608,36 @@ app.post('/api/usuario', limitar(20, 15 * 60 * 1000), async (req, res) => {
             [nome, email, senha_hash, perfil]
         );
 
+        const u = resultado.rows[0];
+
+        // a conta nasce não verificada: gera o link e envia o e-mail de confirmação
+        let enviado = false;
+        let link;
+        try {
+            const tokenVerif = await novaVerificacao(u.id_usuario);
+            if (emailConfigurado()) {
+                enviado = await enviarVerificacao(u.email, tokenVerif);
+            } else if (process.env.DEMO_RESET === 'true') {
+                // MODO DEMONSTRAÇÃO (sem provedor de e-mail): devolve o link na resposta.
+                // Não use em produção: entrega o link a quem criou a conta, sem provar que o e-mail é dele.
+                link = linkVerificacao(process.env.APP_URL || `${req.protocol}://${req.get('host')}`, tokenVerif);
+            }
+        } catch (e) {
+            console.error('Erro ao gerar verificação de e-mail:', e.message);
+        }
+
+        const mensagem = enviado
+            ? `Conta criada. Enviamos um e-mail de confirmação para ${u.email}. Abra o link para ativar o acesso.`
+            : link
+                ? 'Conta criada. Modo demonstração: use o link abaixo para confirmar o e-mail.'
+                : 'Conta criada, mas não foi possível enviar o e-mail de confirmação agora. Tente reenviar em instantes ou fale com o administrador.';
+
         return res.status(201).json({
-            message: 'Usuário criado com sucesso',
-            usuario: resultado.rows[0]
+            message: mensagem,
+            usuario: u,
+            verificacao_pendente: true,
+            email_enviado: enviado,
+            ...(link ? { link } : {})
         });
 
     } catch (error) {
@@ -558,6 +719,134 @@ const emailSenhaAlterada = () => ({
     assunto: 'EcoBalance Ledger - sua senha foi alterada',
     texto: 'A senha da sua conta no EcoBalance Ledger acabou de ser alterada. Se não foi você, entre em contato com o administrador imediatamente.',
     html: '<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#111"><h2 style="color:#059669">EcoBalance Ledger</h2><p>A senha da sua conta acabou de ser alterada.</p><p style="font-size:13px;color:#555">Se não foi você, entre em contato com o administrador imediatamente.</p></div>'
+});
+
+// ------------------- Verificação de e-mail no cadastro ------------------------//
+// Conta nova nasce com email_verificado = false e só consegue entrar depois de abrir o link
+// enviado por e-mail. O token tem 32 bytes aleatórios; no banco fica só o hash SHA-256;
+// vale 24 horas e só pode ser usado uma vez (mesmo padrão da redefinição de senha).
+const INTERVALO_REENVIO_S = 60; // mínimo entre dois e-mails de confirmação para a mesma conta
+
+const linkVerificacao = (base, token) => `${String(base).replace(/\/$/, '')}/login.html?verificar=${token}`;
+
+const emailVerificacao = (link) => ({
+    assunto: 'EcoBalance Ledger - confirme seu e-mail',
+    texto:
+`Recebemos um cadastro no EcoBalance Ledger com este e-mail.
+
+Abra o link abaixo para confirmar o e-mail e ativar a conta (vale por 24 horas e só pode ser usado uma vez):
+
+${link}
+
+Se você não criou essa conta, ignore esta mensagem: nada será ativado.`,
+    html:
+`<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#111">
+  <h2 style="color:#059669">EcoBalance Ledger</h2>
+  <p>Recebemos um cadastro com este e-mail. Confirme para ativar a conta.</p>
+  <p><a href="${link}" style="display:inline-block;background:#059669;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none">Confirmar e-mail</a></p>
+  <p style="font-size:13px;color:#555">O link vale por 24 horas e só pode ser usado uma vez.<br>
+  Se você não criou essa conta, ignore esta mensagem: nada será ativado.</p>
+</div>`
+});
+
+// Invalida links anteriores ainda abertos e cria um novo. Devolve o token em texto puro
+// (ele só existe aqui e no e-mail; no banco vai apenas o hash).
+async function novaVerificacao(idUsuario) {
+    await pool.query(
+        `UPDATE verificacoes_email SET expira_em = now()
+          WHERE id_usuario = $1 AND usado_em IS NULL AND expira_em > now()`, [idUsuario]);
+    const token = crypto.randomBytes(32).toString('hex');
+    await pool.query(
+        `INSERT INTO verificacoes_email (id_usuario, token_hash, expira_em)
+         VALUES ($1, $2, now() + interval '24 hours')`, [idUsuario, sha256(token)]);
+    return token;
+}
+
+// Nunca lança: devolve true/false. Se o envio falhar, invalida o token para não sobrar
+// um link válido que ninguém recebeu.
+async function enviarVerificacao(email, token) {
+    const m = emailVerificacao(linkVerificacao(process.env.APP_URL, token));
+    try {
+        await enviarEmail({ para: email, assunto: m.assunto, html: m.html, texto: m.texto });
+        return true;
+    } catch (e) {
+        console.error('Falha ao enviar e-mail de verificação:', e.message);
+        await pool.query('UPDATE verificacoes_email SET expira_em = now() WHERE token_hash = $1', [sha256(token)]).catch(() => {});
+        return false;
+    }
+}
+
+// O front chama esta rota (POST) quando abre login.html?verificar=TOKEN.
+// POST e não GET para que pré-visualizadores de e-mail não consumam o link.
+app.post('/api/auth/verificar-email', limitar(20, 15 * 60 * 1000), async (req, res) => {
+    const { token } = req.body || {};
+    const invalido = { message: 'Link inválido ou expirado.' };
+    if (typeof token !== 'string' || !/^[0-9a-f]{64}$/.test(token)) return res.status(400).json(invalido);
+
+    let client;
+    try {
+        client = await pool.connect();
+        await client.query('BEGIN');
+
+        // trava o pedido para que o mesmo link não seja usado duas vezes ao mesmo tempo
+        const { rows } = await client.query(
+            `SELECT id_verificacao, id_usuario FROM verificacoes_email
+              WHERE token_hash = $1 AND usado_em IS NULL AND expira_em > now()
+              FOR UPDATE`, [sha256(token)]);
+
+        if (!rows.length) {
+            await client.query('ROLLBACK');
+            // link já usado por uma conta confirmada (clique duplo, pré-visualização): não é erro
+            const ja = await pool.query(
+                `SELECT 1 FROM verificacoes_email v
+                   JOIN usuarios u ON u.id_usuario = v.id_usuario
+                  WHERE v.token_hash = $1 AND v.usado_em IS NOT NULL AND u.email_verificado`, [sha256(token)]);
+            if (ja.rows.length) return res.json({ message: 'E-mail já confirmado. Você já pode entrar.', ja_confirmado: true });
+            return res.status(400).json(invalido);
+        }
+
+        await client.query('UPDATE usuarios SET email_verificado = true WHERE id_usuario = $1', [rows[0].id_usuario]);
+        await client.query('UPDATE verificacoes_email SET usado_em = now() WHERE id_verificacao = $1', [rows[0].id_verificacao]);
+        await client.query('COMMIT');
+        return res.json({ message: 'E-mail confirmado. Você já pode entrar.' });
+    } catch (err) {
+        if (client) await client.query('ROLLBACK').catch(() => {});
+        console.error('Erro em verificar-email:', err.message);
+        return res.status(500).json({ message: 'Erro ao confirmar o e-mail.' });
+    } finally {
+        if (client) client.release();
+    }
+});
+
+// Novo link para quem não recebeu ou deixou expirar. A resposta é sempre a mesma, exista a
+// conta ou não, e o e-mail sai sem esperar (mesma velocidade nos dois casos).
+app.post('/api/auth/reenviar-verificacao', limitar(5, 60 * 60 * 1000), async (req, res) => {
+    const email = normEmail(req.body?.email);
+    const resposta = { message: 'Se o e-mail estiver cadastrado e ainda não confirmado, enviaremos um novo link.' };
+    if (!emailOk(email)) return res.json(resposta);
+
+    try {
+        const { rows } = await pool.query(
+            'SELECT id_usuario, email FROM usuarios WHERE lower(email) = $1 AND email_verificado = false', [email]);
+        if (rows.length) {
+            // evita encher a caixa de entrada de alguém: no máximo um e-mail por minuto por conta
+            const recente = await pool.query(
+                `SELECT 1 FROM verificacoes_email
+                  WHERE id_usuario = $1 AND criado_em > now() - make_interval(secs => $2)`,
+                [rows[0].id_usuario, INTERVALO_REENVIO_S]);
+            if (!recente.rows.length) {
+                const token = await novaVerificacao(rows[0].id_usuario);
+                if (emailConfigurado()) {
+                    enviarVerificacao(rows[0].email, token); // sem await; nunca lança
+                } else if (process.env.DEMO_RESET === 'true') {
+                    resposta.link = linkVerificacao(process.env.APP_URL || `${req.protocol}://${req.get('host')}`, token);
+                }
+            }
+        }
+    } catch (err) {
+        console.error('Erro em reenviar-verificacao:', err.message);
+    }
+    return res.json(resposta);
 });
 
 app.post('/api/auth/esqueci-senha', limitar(5, 60 * 60 * 1000), async (req, res) => {
@@ -677,10 +966,17 @@ app.post('/api/auth/login', limitar(20, 15 * 60 * 1000), async (req, res) => {
     if (!email || !senha) return res.status(400).json({ message: 'email e senha são obrigatórios.' });
     try {
         const { rows } = await pool.query(
-            'SELECT id_usuario, email, senha_hash, perfil FROM usuarios WHERE lower(email) = lower($1)', [email]);
+            'SELECT id_usuario, email, senha_hash, perfil, email_verificado FROM usuarios WHERE lower(email) = lower($1)', [email]);
         const usuario = rows[0];
         const ok = usuario && await bcrypt.compare(senha, usuario.senha_hash);
         if (!ok) return res.status(401).json({ message: 'Email ou senha inválidos.' });
+        // só depois de acertar a senha: quem não sabe a senha não descobre o estado da conta
+        if (!usuario.email_verificado) {
+            return res.status(403).json({
+                codigo: 'EMAIL_NAO_VERIFICADO',
+                message: 'Confirme seu e-mail antes de entrar. Abra o link enviado na confirmação ou peça um novo.'
+            });
+        }
         const token = jwt.sign(
             { id: usuario.id_usuario, perfil: usuario.perfil },
             process.env.JWT_SECRET, { expiresIn: '2h' });
@@ -688,6 +984,157 @@ app.post('/api/auth/login', limitar(20, 15 * 60 * 1000), async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Erro ao fazer login.' });
+    }
+});
+
+
+// ------------------- Minha conta (cada usuário cuida só dos próprios dados) ------------------------//
+// Todas as rotas usam o id que vem do token (req.user.id): ninguém altera a conta de outra pessoa.
+// Ações sensíveis pedem a senha atual de novo. Senha errada responde 403 (e não 401, que desloga no front).
+const limiteConta = limitar(10, 15 * 60 * 1000); // quem tiver um token roubado não consegue chutar a senha à vontade
+
+async function confereSenha(idUsuario, senha) {
+    if (typeof senha !== 'string' || !senha) return null;
+    const { rows } = await pool.query('SELECT id_usuario, nome, email, senha_hash FROM usuarios WHERE id_usuario = $1', [idUsuario]);
+    if (!rows.length) return null;
+    return (await bcrypt.compare(senha, rows[0].senha_hash)) ? rows[0] : null;
+}
+
+app.get('/api/me', authenticateJWT, async (req, res) => {
+    try {
+        const { rows } = await pool.query('SELECT id_usuario, nome, email, perfil FROM usuarios WHERE id_usuario = $1', [req.user.id]);
+        if (!rows.length) return res.sendStatus(401);
+        const pend = await pool.query(
+            `SELECT novo_email FROM verificacoes_email
+              WHERE id_usuario = $1 AND novo_email IS NOT NULL AND usado_em IS NULL AND expira_em > now()
+              ORDER BY id_verificacao DESC LIMIT 1`, [req.user.id]);
+        res.json({ ...rows[0], email_pendente: pend.rows[0] ? pend.rows[0].novo_email : null });
+    } catch (err) {
+        console.error('Erro em GET /api/me:', err.message);
+        res.status(500).json({ message: 'Erro ao carregar a conta.' });
+    }
+});
+
+app.put('/api/me', authenticateJWT, async (req, res) => {
+    const nome = String((req.body && req.body.nome) || '').trim();
+    if (nome.length < 2 || nome.length > 100) return res.status(400).json({ message: 'Informe um nome com 2 a 100 caracteres.' });
+    try {
+        const { rows } = await pool.query(
+            'UPDATE usuarios SET nome = $1 WHERE id_usuario = $2 RETURNING id_usuario, nome, email, perfil', [nome, req.user.id]);
+        res.json({ message: 'Nome atualizado.', usuario: rows[0] });
+    } catch (err) {
+        console.error('Erro em PUT /api/me:', err.message);
+        res.status(500).json({ message: 'Erro ao atualizar o nome.' });
+    }
+});
+
+// Troca de e-mail: o link de confirmação vai para o endereço NOVO e o e-mail só muda depois
+// que ele for aberto. Até lá o login continua com o e-mail antigo.
+app.post('/api/me/email', authenticateJWT, limiteConta, async (req, res) => {
+    const novo = normEmail(req.body && req.body.novo_email);
+    if (!emailOk(novo)) return res.status(400).json({ message: 'Informe um e-mail válido.' });
+    try {
+        const u = await confereSenha(req.user.id, req.body && req.body.senha);
+        if (!u) return res.status(403).json({ message: 'Senha incorreta.' });
+        if (novo === normEmail(u.email)) return res.status(400).json({ message: 'Esse já é o e-mail da sua conta.' });
+
+        const dup = await pool.query('SELECT 1 FROM usuarios WHERE lower(email) = $1', [novo]);
+        if (dup.rows.length) return res.status(409).json({ message: 'Esse e-mail já está em uso em outra conta.' });
+
+        const recente = await pool.query(
+            `SELECT 1 FROM verificacoes_email WHERE id_usuario = $1 AND criado_em > now() - make_interval(secs => $2)`,
+            [u.id_usuario, INTERVALO_REENVIO_S]);
+        if (recente.rows.length) return res.status(429).json({ message: 'Aguarde um minuto antes de pedir outro e-mail.' });
+
+        if (!emailConfigurado() && process.env.DEMO_RESET !== 'true') {
+            return res.status(503).json({ message: 'O envio de e-mail não está configurado neste servidor.' });
+        }
+
+        const token = await novaVerificacao(u.id_usuario, novo);
+        if (!emailConfigurado()) {
+            // MODO DEMONSTRAÇÃO (sem provedor de e-mail): devolve o link na resposta
+            return res.json({
+                message: 'Modo demonstração: use o link abaixo para confirmar o novo e-mail.',
+                email_pendente: novo,
+                link: linkVerificacao(process.env.APP_URL || `${req.protocol}://${req.get('host')}`, token)
+            });
+        }
+        if (!(await enviarVerificacao(novo, token, emailMudancaEmail))) {
+            return res.status(502).json({ message: 'Não foi possível enviar o e-mail de confirmação agora. Tente de novo em instantes.' });
+        }
+        // avisa o endereço antigo (sem esperar)
+        const aviso = emailAvisoMudanca(novo);
+        enviarEmail({ para: u.email, assunto: aviso.assunto, html: aviso.html, texto: aviso.texto })
+            .catch((e) => console.error('Falha ao enviar aviso ao e-mail antigo:', e.message));
+        res.json({
+            message: `Enviamos um link de confirmação para ${novo}. O e-mail só muda depois que você abrir o link.`,
+            email_pendente: novo
+        });
+    } catch (err) {
+        console.error('Erro em POST /api/me/email:', err.message);
+        res.status(500).json({ message: 'Erro ao pedir a troca de e-mail.' });
+    }
+});
+
+app.put('/api/me/senha', authenticateJWT, limiteConta, async (req, res) => {
+    const { senha_atual, nova_senha } = req.body || {};
+    if (typeof nova_senha !== 'string' || nova_senha.length < 8) {
+        return res.status(400).json({ message: 'A nova senha deve ter pelo menos 8 caracteres.' });
+    }
+    try {
+        const u = await confereSenha(req.user.id, senha_atual);
+        if (!u) return res.status(403).json({ message: 'Senha atual incorreta.' });
+        if (nova_senha === senha_atual) return res.status(400).json({ message: 'A nova senha precisa ser diferente da atual.' });
+        await pool.query('UPDATE usuarios SET senha_hash = $1 WHERE id_usuario = $2', [await bcrypt.hash(nova_senha, 10), u.id_usuario]);
+        if (emailConfigurado()) {
+            const m = emailSenhaAlterada();
+            enviarEmail({ para: u.email, assunto: m.assunto, html: m.html, texto: m.texto })
+                .catch((e) => console.error('Falha ao enviar aviso de senha alterada:', e.message));
+        }
+        res.json({ message: 'Senha alterada.' });
+    } catch (err) {
+        console.error('Erro em PUT /api/me/senha:', err.message);
+        res.status(500).json({ message: 'Erro ao alterar a senha.' });
+    }
+});
+
+// Exclusão da própria conta. Quem nunca fez simulação é apagado de verdade. Quem já fez é ANONIMIZADO
+// (nome e e-mail apagados, login impossível), porque a simulação e o log com hash continuam
+// existindo e a trilha de auditoria não pode perder o vínculo. O hash usa só o número id_usuario,
+// então anonimizar não quebra a verificação da cadeia.
+app.delete('/api/me', authenticateJWT, limiteConta, async (req, res) => {
+    let client;
+    try {
+        const u = await confereSenha(req.user.id, req.body && req.body.senha);
+        if (!u) return res.status(403).json({ message: 'Senha incorreta.' });
+
+        client = await pool.connect();
+        await client.query('BEGIN');
+        const { rows: [c] } = await client.query('SELECT count(*)::int AS n FROM simulacoes_leontief WHERE id_usuario = $1', [u.id_usuario]);
+        await client.query('DELETE FROM verificacoes_email WHERE id_usuario = $1', [u.id_usuario]);
+        await client.query('DELETE FROM pedidos_redefinicao WHERE lower(email) = lower($1)', [u.email]);
+        const anonimizada = c.n > 0;
+        if (anonimizada) {
+            await client.query(
+                `UPDATE usuarios SET nome = 'Usuário removido', email = $2, senha_hash = $3, email_verificado = false
+                  WHERE id_usuario = $1`,
+                [u.id_usuario, `removido-${u.id_usuario}@removido.invalid`, await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10)]);
+        } else {
+            await client.query('DELETE FROM usuarios WHERE id_usuario = $1', [u.id_usuario]);
+        }
+        await client.query('COMMIT');
+        res.json({
+            message: anonimizada
+                ? 'Conta encerrada. Seus dados pessoais foram removidos; as simulações que você registrou permanecem, sem identificação, para preservar a auditoria.'
+                : 'Conta excluída.',
+            anonimizada
+        });
+    } catch (err) {
+        if (client) await client.query('ROLLBACK').catch(() => {});
+        console.error('Erro em DELETE /api/me:', err.message);
+        res.status(500).json({ message: 'Erro ao excluir a conta.' });
+    } finally {
+        if (client) client.release();
     }
 });
 

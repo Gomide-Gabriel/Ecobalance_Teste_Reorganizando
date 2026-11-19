@@ -74,7 +74,8 @@
   html[data-theme="light"] .hover\:text-emerald-300:hover, html[data-theme="light"] .hover\:text-emerald-400:hover { color: #047857 !important; }
   html[data-theme="light"] .text-emerald-200 { color: #065f46 !important; }
   html[data-theme="light"] .text-red-200, html[data-theme="light"] .text-red-300 { color: #991b1b !important; }
-  html[data-theme="light"] .text-yellow-300 { color: #854d0e !important; }
+  html[data-theme="light"] .text-yellow-300, html[data-theme="light"] .text-yellow-400 { color: #854d0e !important; }
+  html[data-theme="light"] .text-red-400 { color: #991b1b !important; }
   html[data-theme="light"] .bg-emerald-900\/50, html[data-theme="light"] .bg-emerald-900\/30 { background-color: #d1fae5 !important; }
   html[data-theme="light"] .bg-red-900\/50, html[data-theme="light"] .bg-red-900\/30 { background-color: #fee2e2 !important; }
   html[data-theme="light"] .bg-yellow-900\/50 { background-color: #fef3c7 !important; }
@@ -128,6 +129,19 @@
               class="w-full py-2 rounded font-medium bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50">
         {{ carregando ? 'Entrando...' : 'Entrar' }}
       </button>
+    </div>
+    <div v-if="precisaVerificar" class="mt-3 text-sm">
+      <button @click="reenviarVerificacao(email)" :disabled="carregando"
+              class="text-emerald-400 hover:text-emerald-300 underline disabled:opacity-50">
+        Reenviar e-mail de confirmação
+      </button>
+    </div>
+    <div v-if="mensagemVerificacao" role="status"
+         class="mt-3 text-sm text-emerald-300 bg-emerald-900/30 border border-emerald-600/40 rounded px-3 py-2">
+      {{ mensagemVerificacao }}
+      <p v-if="linkVerificacaoDemo" class="mt-2 break-all">
+        Modo demonstração: <a :href="linkVerificacaoDemo" class="underline">{{ linkVerificacaoDemo }}</a>
+      </p>
     </div>
     <div class="mt-3 text-sm">
       <button
@@ -281,6 +295,11 @@
         </select>
       </label>
 
+      <p class="text-xs text-gray-500 mt-1">
+        Para fins de demonstração, o perfil pode ser selecionado livremente.
+        A regra definitiva de atribuição de perfis será definida posteriormente pelo grupo.
+      </p>
+
       <button
         @click="cadastrar"
         :disabled="carregando"
@@ -299,13 +318,150 @@
     </div>
   </section>
 
+  <!-- Aguardando confirmação de e-mail (logo depois do cadastro) -->
+  <section v-if="!logado && modo === 'aguardando'" class="card p-6 max-w-md">
+    <h2 class="text-lg font-semibold mb-2">Confirme seu e-mail</h2>
+    <p class="text-sm text-gray-300" role="status">{{ mensagemVerificacao }}</p>
+    <p v-if="linkVerificacaoDemo" class="mt-3 text-sm text-gray-300 break-all">
+      Modo demonstração (sem provedor de e-mail):
+      <a :href="linkVerificacaoDemo" class="text-emerald-400 underline">{{ linkVerificacaoDemo }}</a>
+    </p>
+    <p class="mt-3 text-sm text-gray-400">Não chegou? Veja a caixa de spam ou peça um novo link. Cada link vale por 24 horas.</p>
+    <div class="mt-4 space-y-2">
+      <button @click="reenviarVerificacao(emailPendente)" :disabled="carregando"
+              class="w-full py-2 rounded font-medium bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50">
+        {{ carregando ? 'Enviando...' : 'Reenviar e-mail de confirmação' }}
+      </button>
+      <button @click="irParaLogin" class="w-full text-sm text-gray-400 hover:text-white underline">Ir para o login</button>
+    </div>
+  </section>
+
+  <!-- Resultado do clique no link do e-mail (login.html?verificar=...) -->
+  <section v-if="!logado && modo === 'verificar'" class="card p-6 max-w-md">
+    <h2 class="text-lg font-semibold mb-2">Confirmação de e-mail</h2>
+    <p v-if="verificacaoEstado === 'verificando'" class="text-sm text-gray-300" role="status">Confirmando seu e-mail...</p>
+    <p v-else-if="verificacaoEstado === 'ok'" class="text-sm text-emerald-300" role="status">{{ mensagemVerificacao }}</p>
+    <div v-else>
+      <p class="text-sm text-red-300" role="alert">{{ mensagemVerificacao }}</p>
+      <p class="mt-2 text-sm text-gray-400">Tente entrar com seu e-mail e senha: se a conta ainda não estiver confirmada, aparecerá a opção de reenviar o link.</p>
+    </div>
+    <button v-if="verificacaoEstado !== 'verificando'" @click="irParaLogin"
+            class="mt-4 w-full py-2 rounded font-medium bg-emerald-600 hover:bg-emerald-700">Ir para o login</button>
+  </section>
+
   <!-- Abas -->
   <nav v-if="logado" class="flex gap-2 mb-4 text-sm">
     <button @click="aba = 'setores'; erro = ''" :class="aba === 'setores' ? 'bg-emerald-700 text-white' : 'text-gray-300 hover:text-white'" class="px-3 py-1.5 rounded">Setores</button>
-    <button v-if="ehAnalista" @click="aba = 'dashboard'; erro = ''" :class="aba === 'dashboard' ? 'bg-emerald-700 text-white' : 'text-gray-300 hover:text-white'" class="px-3 py-1.5 rounded">Dashboard </button>
+    <button v-if="ehAnalista"  @click="abrirDashboard" :class="aba === 'dashboard' ? 'bg-emerald-700 text-white' : 'text-gray-300 hover:text-white'" class="px-3 py-1.5 rounded">Dashboard </button>
     <button v-if="ehAnalista" @click="aba = 'calcular'; erro = ''" :class="aba === 'calcular' ? 'bg-emerald-700 text-white' : 'text-gray-300 hover:text-white'" class="px-3 py-1.5 rounded">Calcular</button>
     <button @click="abrirLogs" :class="aba === 'logs' ? 'bg-emerald-700 text-white' : 'text-gray-300 hover:text-white'" class="px-3 py-1.5 rounded">Logs</button>
+    <button @click="abrirConta" :class="aba === 'conta' ? 'bg-emerald-700 text-white' : 'text-gray-300 hover:text-white'" class="px-3 py-1.5 rounded ml-auto"> Minha conta
+</button>
   </nav>
+
+  <!-- Minha conta -->
+  <section v-if="logado && aba === 'conta'" class="space-y-6 max-w-2xl">
+    <div class="card p-6">
+      <h2 class="text-lg font-semibold">Minha conta</h2>
+      <p v-if="conta" class="text-sm text-gray-400 mt-1">
+        {{ conta.email }} · perfil {{ conta.perfil }}
+      </p>
+      <p v-else class="text-sm text-gray-400 mt-1" role="status">Carregando...</p>
+    </div>
+
+    <template v-if="conta">
+      <!-- Nome -->
+      <div class="card p-6">
+        <h3 class="font-semibold mb-3">Nome</h3>
+        <label class="block text-sm">Nome de exibição
+          <input v-model="contaForm.nome" type="text" maxlength="100" autocomplete="name" class="mt-1 w-full px-3 py-2 rounded border border-gray-600 text-white" style="background:#0f172a">
+        </label>
+        <button @click="salvarNome" :disabled="contaOcupada || !contaForm.nome.trim() || contaForm.nome.trim() === conta.nome"
+                class="mt-3 px-4 py-2 rounded font-medium bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50">Salvar nome</button>
+      <p v-if="contaAviso.secao === 'nome' && contaAviso.texto" :role="contaAviso.ok ? 'status' : 'alert'"
+         :class="contaAviso.ok ? 'text-emerald-300 bg-emerald-900/30 border-emerald-600/40' : 'text-red-300 bg-red-900/30 border-red-700/50'"
+         class="mt-3 text-sm border rounded px-3 py-2 break-all">
+        {{ contaAviso.texto }}
+        <a v-if="contaAviso.link" :href="contaAviso.link" class="block mt-1 underline">{{ contaAviso.link }}</a>
+      </p>
+      </div>
+
+      <!-- E-mail -->
+      <div class="card p-6">
+        <h3 class="font-semibold mb-1">E-mail</h3>
+        <p class="text-sm text-gray-400 mb-3">
+          Enviamos um link para o endereço novo. O e-mail só muda depois que você abrir o link;
+          até lá, você continua entrando com o atual.
+        </p>
+        <p v-if="conta.email_pendente" class="text-sm text-yellow-400 mb-3">
+          Aguardando confirmação do e-mail <strong>{{ conta.email_pendente }}</strong>.
+        </p>
+        <div class="space-y-3">
+          <label class="block text-sm">Novo e-mail
+            <input v-model="contaForm.novoEmail" type="email" autocomplete="email" class="mt-1 w-full px-3 py-2 rounded border border-gray-600 text-white" style="background:#0f172a">
+          </label>
+          <label class="block text-sm">Sua senha atual
+            <input v-model="contaForm.senhaEmail" type="password" autocomplete="current-password" class="mt-1 w-full px-3 py-2 rounded border border-gray-600 text-white" style="background:#0f172a">
+          </label>
+        </div>
+        <button @click="pedirTrocaEmail" :disabled="contaOcupada || !contaForm.novoEmail || !contaForm.senhaEmail"
+                class="mt-3 px-4 py-2 rounded font-medium bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50">Enviar link de confirmação</button>
+      <p v-if="contaAviso.secao === 'email' && contaAviso.texto" :role="contaAviso.ok ? 'status' : 'alert'"
+         :class="contaAviso.ok ? 'text-emerald-300 bg-emerald-900/30 border-emerald-600/40' : 'text-red-300 bg-red-900/30 border-red-700/50'"
+         class="mt-3 text-sm border rounded px-3 py-2 break-all">
+        {{ contaAviso.texto }}
+        <a v-if="contaAviso.link" :href="contaAviso.link" class="block mt-1 underline">{{ contaAviso.link }}</a>
+      </p>
+      </div>
+
+      <!-- Senha -->
+      <div class="card p-6">
+        <h3 class="font-semibold mb-3">Senha</h3>
+        <div class="space-y-3">
+          <label class="block text-sm">Senha atual
+            <input v-model="contaForm.senhaAtual" type="password" autocomplete="current-password" class="mt-1 w-full px-3 py-2 rounded border border-gray-600 text-white" style="background:#0f172a">
+          </label>
+          <label class="block text-sm">Nova senha (mínimo 8 caracteres)
+            <input v-model="contaForm.novaSenha" type="password" autocomplete="new-password" class="mt-1 w-full px-3 py-2 rounded border border-gray-600 text-white" style="background:#0f172a">
+          </label>
+        </div>
+        <button @click="trocarSenha" :disabled="contaOcupada || !contaForm.senhaAtual || contaForm.novaSenha.length < 8"
+                class="mt-3 px-4 py-2 rounded font-medium bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50">Alterar senha</button>
+      <p v-if="contaAviso.secao === 'senha' && contaAviso.texto" :role="contaAviso.ok ? 'status' : 'alert'"
+         :class="contaAviso.ok ? 'text-emerald-300 bg-emerald-900/30 border-emerald-600/40' : 'text-red-300 bg-red-900/30 border-red-700/50'"
+         class="mt-3 text-sm border rounded px-3 py-2 break-all">
+        {{ contaAviso.texto }}
+        <a v-if="contaAviso.link" :href="contaAviso.link" class="block mt-1 underline">{{ contaAviso.link }}</a>
+      </p>
+      </div>
+
+      <!-- Excluir conta -->
+      <div class="card p-6 border-red-700/50">
+        <h3 class="font-semibold text-red-400 mb-1">Excluir conta</h3>
+        <p class="text-sm text-gray-400 mb-3">
+          Não dá para desfazer. Se você nunca registrou uma simulação, a conta é apagada.
+          Se já registrou, seus dados pessoais (nome e e-mail) são removidos, mas as simulações e o log de auditoria
+          permanecem, sem identificação, para não quebrar a verificação da cadeia.
+        </p>
+        <div class="space-y-3">
+          <label class="block text-sm">Sua senha
+            <input v-model="contaForm.senhaExcluir" type="password" autocomplete="current-password" class="mt-1 w-full px-3 py-2 rounded border border-gray-600 text-white" style="background:#0f172a">
+          </label>
+          <label class="block text-sm">Digite EXCLUIR para confirmar
+            <input v-model="contaForm.confirmaExcluir" type="text" autocomplete="off" class="mt-1 w-full px-3 py-2 rounded border border-gray-600 text-white" style="background:#0f172a">
+          </label>
+        </div>
+        <button @click="excluirConta" :disabled="contaOcupada || !contaForm.senhaExcluir || contaForm.confirmaExcluir.trim() !== 'EXCLUIR'"
+                class="mt-3 px-4 py-2 rounded font-medium bg-red-700 hover:bg-red-800 text-white disabled:opacity-50">Excluir minha conta</button>
+      <p v-if="contaAviso.secao === 'excluir' && contaAviso.texto" :role="contaAviso.ok ? 'status' : 'alert'"
+         :class="contaAviso.ok ? 'text-emerald-300 bg-emerald-900/30 border-emerald-600/40' : 'text-red-300 bg-red-900/30 border-red-700/50'"
+         class="mt-3 text-sm border rounded px-3 py-2 break-all">
+        {{ contaAviso.texto }}
+        <a v-if="contaAviso.link" :href="contaAviso.link" class="block mt-1 underline">{{ contaAviso.link }}</a>
+      </p>
+      </div>
+    </template>
+  </section>
 
   <!-- Dashboard Analista -->
   <section v-if="logado && aba === 'dashboard' && ehAnalista" class="space-y-6">
@@ -431,7 +587,7 @@
         <button
           @click="resetMatrix"
           class="px-3 py-2 rounded bg-gray-700">
-          Reset
+          Restaurar dados do banco
         </button>
       </div>
 
@@ -473,8 +629,10 @@
                 class="p-2">
 
                 <input
-                  v-model.number="matrix[i].valores[j]"
+                  :value="matrix[i].valores[j]"
+                  @input="atualizarCoeficiente(i, j, $event.target.value)"
                   type="number"
+                  min="0"
                   step="0.01"
                   class="w-20 p-1 rounded bg-slate-800 text-center">
 
@@ -483,8 +641,11 @@
               <td class="p-2">
 
                 <input
-                  v-model.number="matrix[i].demanda"
+                  :value="matrix[i].demanda"
+                  @input="atualizarDemandaLinha(i, $event.target.value)"
                   type="number"
+                  min="0"
+                  step="any"
                   class="w-24 p-1 rounded bg-slate-800 text-center">
 
               </td>
@@ -492,10 +653,41 @@
             </tr>
 
           </tbody>
-
         </table>
-
       </div>
+
+      <p
+        v-if="erroMatriz"
+        role="alert"
+        class="mt-4 text-sm text-red-300 bg-red-900/30 border border-red-700/50 rounded px-3 py-2">
+        {{ erroMatriz }}
+      </p>
+
+      <div class="mt-6 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          @click="simularMatrizDashboard"
+          :disabled="carregando"
+          class="px-5 py-2.5 rounded font-medium bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50"
+        >
+          {{ carregando ? 'Simulando...' : 'Simular matriz' }}
+        </button>
+
+        <button
+          type="button"
+          @click="abrirCalculoOficial"
+          class="px-5 py-2.5 rounded font-medium bg-blue-600 hover:bg-blue-700"
+        >
+          Ir para cálculo oficial
+        </button>
+
+        <p class="w-full text-xs text-gray-500">
+          A prévia usa a matriz editada nesta tela e executa o núcleo Python sem
+          gravar dados. O cálculo oficial leva apenas as demandas e usa os
+          coeficientes cadastrados no banco, criando a simulação, o log e o hash.
+        </p>
+      </div>
+
 
       <div class="mt-6 card p-4">
 
@@ -503,76 +695,76 @@
           Produção Total Projetada
         </div>
 
-        <div class="text-4xl font-bold text-emerald-400">
+       <div
+        v-if="resultadoDashboard"
+        class="text-4xl font-bold text-emerald-400"
+      >
+        {{ producaoTotal }}
+      </div>
 
-          {{ producaoTotal }}
-
-        </div>
+      <p v-else class="text-sm text-gray-400 mt-2">
+        Informe a demanda e clique em “Simular matriz”.
+      </p>
 
         <div class="text-sm text-gray-500 mt-2">
-          X = (I - C)^-1 · d
+          X = (I - A)<sup>-1</sup> · d
+        </div>
+
+        <div
+          v-if="resultadoDashboard"
+          class="text-sm text-gray-400 mt-2"
+        >
+          Raio espectral:
+          {{ Number(resultadoDashboard.raio_espectral).toFixed(4) }}
+          <span class="text-emerald-400">
+            (matriz produtiva, valor menor que 1)
+          </span>
         </div>
 
       </div>
 
     </div>
 
+    
 
-    <!-- Resultado por Setor-->
+    <!-- Resultado por setor -->
     <div class="card p-6 mt-6">
-
-      <h3 class="text-xl font-bold text-emerald-400 mb-4">
-        Resultado da Simulação
+      <h3 class="text-xl font-bold text-emerald-400 mb-2">
+        Resultado da Prévia de Leontief
       </h3>
 
-      <div
-        v-for="setor in resultadoSetores"
-        :key="setor.nome"
-        class="flex justify-between py-3 border-b border-gray-700">
+      <p class="text-sm text-gray-400 mb-4">
+        Resultado calculado pelo núcleo Python a partir da matriz e da demanda
+        atualmente exibidas no dashboard. Esta prévia não gera log nem hash.
+      </p>
 
-        <span>
-          {{ setor.nome }}
-        </span>
+      <template v-if="resultadoDashboard">
+        <div
+          v-for="setor in resultadoSetores"
+          :key="setor.id || setor.nome"
+          class="flex justify-between gap-4 py-3 border-b border-gray-700"
+        >
+          <span>{{ setor.nome }}</span>
 
-        <span class="font-bold text-emerald-400">
-          {{ setor.producao }}
-        </span>
+          <span class="font-bold text-emerald-400">
+            {{ setor.producao }}
+          </span>
+        </div>
 
-      </div>
+        <div class="flex justify-between gap-4 mt-4 pt-4 border-t border-gray-600">
+          <span class="font-bold">
+            Produção total
+          </span>
 
-      <div
-        class="flex justify-between mt-4 pt-4 border-t border-gray-600">
+          <span class="font-bold text-emerald-400">
+            {{ producaoTotal }}
+          </span>
+        </div>
+      </template>
 
-        <span class="font-bold">
-          Produção Total
-        </span>
-
-        <span class="font-bold text-emerald-400">
-          {{ producaoTotal }}
-          <div
-            class="mt-4 text-lg font-semibold"
-            :class="nivelESG.cor">
-
-            {{ nivelESG.icone }}
-            {{ nivelESG.texto }}
-
-          </div>
-
-          <div class="card p-6 mt-6">
-
-              <h3 class="text-xl font-bold text-emerald-400 mb-4">
-                Diagnóstico Automatizado
-              </h3>
-
-              <p class="text-gray-300">
-                {{ diagnostico }}
-              </p>
-          </div>
-
-        </span>
-
-      
-      </div>
+      <p v-else class="text-sm text-gray-400">
+        Nenhuma prévia executada.
+      </p>
     </div>
 
     <!-- Exportar -->
@@ -622,7 +814,7 @@
               v-model.number="simulacao.eficiencia"
               type="range"
               min="0"
-              max="50"
+              :max="ESG_LIMITES.eficiencia"
               class="w-full">
           </div>
 
@@ -638,7 +830,7 @@
               v-model.number="simulacao.energia"
               type="range"
               min="0"
-              max="40"
+              :max="ESG_LIMITES.energia"
               class="w-full">
           </div>
 
@@ -654,7 +846,7 @@
               v-model.number="simulacao.residuos"
               type="range"
               min="0"
-              max="30"
+              :max="ESG_LIMITES.residuos"
               class="w-full">
           </div>
         </div>
@@ -690,6 +882,53 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Nível de sustentabilidade (gráfico) -->
+      <div class="mt-8 pt-6 border-t border-gray-700/60">
+        <h3 class="text-lg font-semibold">Nível de sustentabilidade</h3>
+        <p class="text-sm text-gray-400 mt-1 mb-4">
+          Pontuação = eficiência + energia + resíduos (máximo {{ esgGrafico.max }}).
+          Faixas: Baixa abaixo de {{ ESG_FAIXAS.moderada }},
+          Moderada de {{ ESG_FAIXAS.moderada }} a {{ ESG_FAIXAS.alta - 1 }},
+          Alta a partir de {{ ESG_FAIXAS.alta }}.
+        </p>
+
+        <svg viewBox="0 0 600 84" class="w-full text-gray-400" role="img"
+             :aria-label="'Pontuação ESG ' + esgGrafico.score + ' de ' + esgGrafico.max + ': ' + nivelESG.texto">
+          <g transform="translate(20 0)">
+            <g v-for="z in esgGrafico.zonas" :key="z.nome">
+              <rect :x="z.x" y="16" :width="z.w" height="26" :fill="z.cor"></rect>
+              <text :x="z.x + z.w / 2" y="62" text-anchor="middle" font-size="13" font-weight="700" fill="currentColor">{{ z.nome }}</text>
+            </g>
+            <line :x1="esgGrafico.marcador" y1="10" :x2="esgGrafico.marcador" y2="48" stroke="#ffffff" stroke-width="6" stroke-linecap="round"></line>
+            <line :x1="esgGrafico.marcador" y1="10" :x2="esgGrafico.marcador" y2="48" stroke="#0f172a" stroke-width="3" stroke-linecap="round"></line>
+            <polygon :points="(esgGrafico.marcador - 6) + ',1 ' + (esgGrafico.marcador + 6) + ',1 ' + esgGrafico.marcador + ',12'" fill="#0f172a" stroke="#ffffff" stroke-width="1.5"></polygon>
+            <text v-for="t in esgGrafico.ticks" :key="t.v" :x="t.x" y="79" :text-anchor="t.ancora" font-size="11" fill="currentColor" fill-opacity="0.75">{{ t.v }}</text>
+          </g>
+        </svg>
+
+        <p class="mt-3 text-sm">
+          Pontuação atual: <strong>{{ esgGrafico.score }}</strong> de {{ esgGrafico.max }}:
+          <span class="font-semibold" :class="nivelESG.cor">{{ nivelESG.texto }}</span>
+        </p>
+
+        <div class="mt-4 space-y-3">
+          <div v-for="a in esgGrafico.alavancas" :key="a.nome">
+            <div class="flex justify-between text-sm mb-1">
+              <span>{{ a.nome }}</span>
+              <span class="text-gray-400">{{ a.valor }} de {{ a.limite }} pts</span>
+            </div>
+            <div class="h-2.5 rounded bg-gray-700">
+              <div class="h-2.5 rounded bg-emerald-500" :style="{ width: a.pct + '%' }"></div>
+            </div>
+          </div>
+        </div>
+
+        <p class="text-xs text-gray-500 mt-4">
+          Indicador ilustrativo do simulador: soma dos três parâmetros acima.
+          Não é resultado da matriz de Leontief nem certificação ESG.
+        </p>
       </div>
     </div>
 
@@ -788,7 +1027,7 @@
           </div>
 
           <div class="text-2xl font-mono text-emerald-300">
-            X = (I - C)<sup>-1</sup> · d
+            X = (I - A)<sup>-1</sup> · d
           </div>
 
           <div class="text-sm text-gray-400 mt-2">
@@ -1008,11 +1247,11 @@
     <h2 class="text-lg font-semibold mb-1">Calcular equilíbrio de Leontief</h2>
     <p class="text-sm text-gray-400 mb-4">Informe a demanda final de cada setor. Setores em branco contam como zero. Cada cálculo grava uma simulação e um log de auditoria no banco.</p>
     <label class="block text-sm mb-4">Ano de referência
-      <input v-model.number="ano" type="number" class="mt-1 w-32 px-3 py-2 rounded border border-gray-600 text-white" style="background:#0f172a">
+      <input v-model.number="ano"  @change="alterarAnoCalculo" type="number"  min="1" class="mt-1 w-32 px-3 py-2 rounded border border-gray-600 text-white" style="background:#0f172a">
     </label>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
       <label v-for="s in setores" :key="s[idKey]" class="block text-sm">{{ s[nomeKey] }}
-        <input v-model="demanda[s[idKey]]" type="number" min="0" step="any" class="mt-1 w-full px-3 py-2 rounded border border-gray-600 text-white" style="background:#0f172a">
+        <input v-model.number="demanda[s[idKey]]" type="number" min="0" step="any" class="mt-1 w-full px-3 py-2 rounded border border-gray-600 text-white" style="background:#0f172a">
       </label>
     </div>
     <button @click="calcular" :disabled="carregando" class="px-4 py-2 rounded font-medium bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50">
@@ -1109,8 +1348,16 @@
   <p v-if="carregando" class="mt-4 text-sm text-gray-400">
     Conectando. Pode levar até 1 minuto para carregar.
   </p>
-  <p v-if="erro" role="alert" class="mt-4 text-sm text-red-300 bg-red-900/30 border border-red-700/50 rounded px-3 py-2">{{ erro }}</p>
 
+  <p
+    v-if="erro"
+    role="alert"
+    class="mt-4 text-sm text-red-300 bg-red-900/30 border border-red-700/50 rounded px-3 py-2"
+  >
+    {{ erro }}
+  </p>
+
+  
   <footer class="mt-10 text-xs text-gray-500">
     Protótipo acadêmico do Painel de operações, ainda em desenvolvimento
   </footer>
@@ -1122,7 +1369,33 @@ const { createApp, ref, computed, onMounted } = Vue;
 createApp({
   setup() {
 
-    
+    const contaVazia = () => ({
+      nome: '',
+      novoEmail: '',
+      senhaEmail: '',
+      senhaAtual: '',
+      novaSenha: '',
+      senhaExcluir: '',
+      confirmaExcluir: ''
+    });
+
+    const conta = ref(null);
+
+    const contaForm = ref(contaVazia());
+
+    const contaAviso = ref({
+      secao: '',
+      ok: true,
+      texto: '',
+      link: ''
+    });
+
+    const contaOcupada = ref(false);
+
+    // Limites e faixas do indicador ESG. Fonte única: sliders, gráfico, rótulo e PDF usam estes valores.
+    const ESG_LIMITES = { eficiencia: 50, energia: 40, residuos: 30 };
+    const ESG_MAX = ESG_LIMITES.eficiencia + ESG_LIMITES.energia + ESG_LIMITES.residuos; // 120
+    const ESG_FAIXAS = { moderada: 35, alta: 70 };
 
     const token = ref(sessionStorage.getItem('eco_token') || '');
     const email = ref('');
@@ -1145,14 +1418,24 @@ createApp({
     const mensagemRedefinicao = ref('');
     const mensagemRecuperacao = ref('');
 
+    // verificação de e-mail
+    const emailPendente = ref('');          // e-mail que aguarda confirmação
+    const mensagemVerificacao = ref('');
+    const linkVerificacaoDemo = ref('');    // só aparece em modo demonstração (DEMO_RESET=true)
+    const precisaVerificar = ref(false);    // login barrado por e-mail não confirmado
+    const verificacaoEstado = ref('');      // 'verificando' | 'ok' | 'erro'
+
 
     const carregando = ref(false);
     const erro = ref('');
+    const erroMatriz = ref('');
     const setores = ref([]);
+    const coeficientes = ref([]);
     const aba = ref('setores');
     const ano = ref(2025);
     const demanda = ref({});
     const resultado = ref(null);
+    const resultadoDashboard = ref(null);
     const logs = ref([]);
     const filtro = ref('');
     const verificacao = ref(null);
@@ -1163,35 +1446,19 @@ createApp({
       investimento: 500000
     });
 
-    const matrixCols = ref([
-      'Setor A',
-      'Setor B',
-      'Setor C'
-    ]);
-
-    const matrix = ref([
-      {
-        nome: 'Setor A',
-        demanda: 100,
-        valores: [0.15, 0.10, 0.05]
-      },
-      {
-        nome: 'Setor B',
-        demanda: 80,
-        valores: [0.20, 0.10, 0.08]
-      },
-      {
-        nome: 'Setor C',
-        demanda: 50,
-        valores: [0.05, 0.10, 0.10]
-      }
-    ]);
+    const matrixCols = ref([]);
+    const matrix = ref([]);
 
     function exportarPDF() {
 
       // jsPDF vem do CDN como window.jspdf.jsPDF
       if (!window.jspdf || !window.jspdf.jsPDF) {
         alert('Biblioteca de PDF não carregada. Verifique a conexão e recarregue a página.');
+        return;
+      }
+
+      if (!resultadoDashboard.value) {
+        alert('Execute a simulação da matriz antes de exportar o relatório.');
         return;
       }
 
@@ -1312,7 +1579,7 @@ createApp({
         );
 
         // ---------- Produção ----------
-        titulo('4. Produção por Setor (ajustada pelo fator ESG)');
+        titulo('4. Produção por Setor - Prévia de Leontief');
         tabela(
           ['Setor', 'Produção'],
           resultadoSetores.value.map(s => [s.nome, fmt(s.producao)])
@@ -1326,12 +1593,105 @@ createApp({
         doc.setFontSize(11);
         y += 8;
 
+        chaveValor(
+          'Raio espectral:',
+          Number(resultadoDashboard.value.raio_espectral).toFixed(4)
+        );
+
         // ---------- Indicadores ----------
+        garantirEspaco(130); // mantém a seção 5 (indicadores + gráfico) inteira na mesma página
         titulo('5. Indicadores ESG e Financeiros');
+        paragrafo(
+          'Os indicadores ESG e financeiros abaixo são estimativas ilustrativas do simulador e não são produzidos pela matriz de Leontief.'
+        );
         chaveValor('ROI Estimado:', `${roiEstimado.value}%`);
         chaveValor('Payback:', `${payback.value} meses`);
         chaveValor('Redução de CO2:', `${co2Reduzido.value}%`);
         chaveValor('Nível ESG:', nivelESG.value.texto);
+        chaveValor('Pontuação ESG:', `${scoreESG.value} de ${ESG_MAX}`);
+
+        // Gráfico do nível de sustentabilidade, desenhado com formas do jsPDF (sem imagem)
+        {
+          const g = esgGrafico.value;
+          const px = (v) => M + (Math.min(Math.max(v, 0), ESG_MAX) / ESG_MAX) * largura;
+          const coresZona = { Baixa: [239, 68, 68], Moderada: [234, 179, 8], Alta: [16, 185, 129] };
+          const escuro = [15, 23, 42];
+
+          garantirEspaco(80);
+          y += 9;                       // espaço para o valor e o marcador acima da barra
+          const yBarra = y;
+          const hBarra = 9;
+
+          g.zonas.forEach((z) => {
+            doc.setFillColor(...coresZona[z.nome]);
+            doc.rect(px(z.de), yBarra, px(z.ate) - px(z.de), hBarra, 'F');
+          });
+
+          // nomes das faixas abaixo da barra (fora do caminho do marcador)
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(8.5);
+          doc.setTextColor(...escuro);
+          g.zonas.forEach((z) => {
+            doc.text(z.nome, (px(z.de) + px(z.ate)) / 2, yBarra + hBarra + 5, { align: 'center' });
+          });
+
+          // marcador: linha, triângulo e valor
+          const mx = px(g.score);
+          doc.setDrawColor(...escuro);
+          doc.setLineWidth(0.8);
+          doc.line(mx, yBarra - 1, mx, yBarra + hBarra + 1);
+          doc.setFillColor(...escuro);
+          doc.triangle(mx - 2, yBarra - 4.5, mx + 2, yBarra - 4.5, mx, yBarra - 1, 'F');
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(9);
+          doc.setTextColor(...escuro);
+          doc.text(String(g.score), mx, yBarra - 6, { align: 'center' });
+
+          // escala
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+          doc.setTextColor(...cinza);
+          g.ticks.forEach((t) => {
+            const al = t.ancora === 'start' ? 'left' : t.ancora === 'end' ? 'right' : 'center';
+            doc.text(String(t.v), px(t.v), yBarra + hBarra + 10, { align: al });
+          });
+          y = yBarra + hBarra + 18;
+
+          // contribuição de cada parâmetro
+          const trilhaX = M + 62;
+          const trilhaW = largura - 62 - 30;
+          g.alavancas.forEach((a) => {
+            garantirEspaco(8);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.setTextColor(0, 0, 0);
+            doc.text(a.nome, M, y);
+            doc.setFillColor(226, 232, 240);
+            doc.rect(trilhaX, y - 3.6, trilhaW, 3.6, 'F');
+            if (a.pct > 0) {
+              doc.setFillColor(...verde);
+              doc.rect(trilhaX, y - 3.6, trilhaW * (a.pct / 100), 3.6, 'F');
+            }
+            doc.text(`${a.valor} de ${a.limite} pts`, W - M, y, { align: 'right' });
+            y += 7;
+          });
+
+          const nota = doc.splitTextToSize(
+            `Faixas: Baixa abaixo de ${ESG_FAIXAS.moderada}, Moderada de ${ESG_FAIXAS.moderada} a ${ESG_FAIXAS.alta - 1}, ` +
+            `Alta a partir de ${ESG_FAIXAS.alta} (pontuação = eficiência + energia + resíduos). ` +
+            'Indicador ilustrativo do simulador: não é resultado da matriz de Leontief nem certificação ESG.',
+            largura
+          );
+          y += 1;
+          garantirEspaco(nota.length * 4 + 2);
+          doc.setFontSize(8.5);
+          doc.setTextColor(...cinza);
+          doc.text(nota, M, y);
+          y += nota.length * 4 + 2;
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(11);
+          doc.setTextColor(0, 0, 0);
+        }
 
         // ---------- Diagnóstico ----------
         titulo('6. Diagnóstico Automatizado');
@@ -1413,22 +1773,65 @@ createApp({
       ).toFixed(1);
     });
 
-    // Produção Total = soma da produção de cada setor (já ajustada pelo fator ESG).
+    // Produção total da prévia = soma dos resultados de Leontief
+    // devolvidos pelo núcleo Python para cada setor.
     // Assim o total sempre fecha com a tabela "Resultado da Simulação" e com o PDF.
     const producaoTotal = computed(() => {
+      if (!resultadoDashboard.value) {
+        return '0.0000';
+      }
+
       return resultadoSetores.value
-        .reduce((acc, setor) => acc + Number(setor.producao || 0), 0)
-        .toFixed(2);
+        .reduce(
+          (total, setor) =>
+            total + Number(setor.producao || 0),
+          0
+        )
+        .toFixed(4);
+    });
+
+    const scoreESG = computed(() =>
+      Number(simulacao.value.eficiencia || 0) +
+      Number(simulacao.value.energia || 0) +
+      Number(simulacao.value.residuos || 0)
+    );
+
+    // Dados do gráfico de nível de sustentabilidade (usados na tela e no PDF)
+    const esgGrafico = computed(() => {
+      const L = 560; // largura útil do desenho, em unidades do SVG
+      const x = (v) => (Math.min(Math.max(v, 0), ESG_MAX) / ESG_MAX) * L;
+      const zonas = [
+        { nome: 'Baixa',    de: 0,                  ate: ESG_FAIXAS.moderada, cor: '#ef4444' },
+        { nome: 'Moderada', de: ESG_FAIXAS.moderada, ate: ESG_FAIXAS.alta,     cor: '#eab308' },
+        { nome: 'Alta',     de: ESG_FAIXAS.alta,     ate: ESG_MAX,             cor: '#10b981' }
+      ].map((z) => ({ ...z, x: x(z.de), w: x(z.ate) - x(z.de) }));
+
+      const alavancas = [
+        { nome: 'Eficiência operacional', valor: Number(simulacao.value.eficiencia || 0), limite: ESG_LIMITES.eficiencia },
+        { nome: 'Economia de energia',    valor: Number(simulacao.value.energia || 0),    limite: ESG_LIMITES.energia },
+        { nome: 'Redução de resíduos',    valor: Number(simulacao.value.residuos || 0),   limite: ESG_LIMITES.residuos }
+      ].map((a) => ({ ...a, pct: Math.min(100, Math.max(0, (a.valor / a.limite) * 100)) }));
+
+      return {
+        score: scoreESG.value,
+        max: ESG_MAX,
+        zonas,
+        marcador: x(scoreESG.value),
+        ticks: [
+          { v: 0,                  x: x(0),                  ancora: 'start' },
+          { v: ESG_FAIXAS.moderada, x: x(ESG_FAIXAS.moderada), ancora: 'middle' },
+          { v: ESG_FAIXAS.alta,     x: x(ESG_FAIXAS.alta),     ancora: 'middle' },
+          { v: ESG_MAX,            x: x(ESG_MAX),            ancora: 'end' }
+        ],
+        alavancas
+      };
     });
 
     const nivelESG = computed(() => {
 
-      const score =
-        simulacao.value.eficiencia +
-        simulacao.value.energia +
-        simulacao.value.residuos;
+      const score = scoreESG.value;
 
-      if (score >= 70) {
+      if (score >= ESG_FAIXAS.alta) {
         return {
           texto: 'Sustentabilidade Alta',
           cor: 'text-emerald-400',
@@ -1436,7 +1839,7 @@ createApp({
         };
       }
 
-      if (score >= 35) {
+      if (score >= ESG_FAIXAS.moderada) {
         return {
           texto: 'Sustentabilidade Moderada',
           cor: 'text-yellow-400',
@@ -1469,62 +1872,63 @@ createApp({
     });
 
     const resultadoSetores = computed(() => {
+      const producao = resultadoDashboard.value?.producao_total;
 
-      const fatorESG =
-        (
-          simulacao.value.eficiencia * 0.005 +
-          simulacao.value.energia * 0.003 +
-          simulacao.value.residuos * 0.002
-        );
+      if (!Array.isArray(producao)) {
+        return [];
+      }
 
-      return matrix.value.map((setor) => {
-
-        const somaCoeficientes =
-          setor.valores.reduce(
-            (acc, valor) => acc + Number(valor || 0),
-            0
-          );
-
-        const coeficienteAjustado =
-          Math.max(
-            0,
-            somaCoeficientes * (1 - fatorESG)
-          );
-
-        const producao =
-          Number(setor.demanda || 0) *
-          (1 + coeficienteAjustado);
-
-        return {
-          nome: setor.nome,
-          producao: producao.toFixed(2)
-        };
-
-      });
-
+      return matrix.value.map((setor, indice) => ({
+        id: setor.id,
+        nome: setor.nome,
+        producao: Number(producao[indice] || 0).toFixed(4)
+      }));
     });
 
     function resetMatrix() {
-
-      matrix.value = [
-        {
-          nome: 'Setor A',
-          demanda: 100,
-          valores: [0.15, 0.10, 0.05]
-        },
-        {
-          nome: 'Setor B',
-          demanda: 80,
-          valores: [0.20, 0.10, 0.08]
-        },
-        {
-          nome: 'Setor C',
-          demanda: 50,
-          valores: [0.05, 0.10, 0.10]
-        }
-      ];
-
+      montarMatrizReal(); 
     }
+
+    function abrirCalculoOficial() {
+      erro.value = '';
+
+      const novaDemanda = {};
+
+      matrix.value.forEach(linha => {
+        novaDemanda[linha.id] = Number(linha.demanda || 0);
+      });
+
+      demanda.value = novaDemanda;
+      aba.value = 'calcular';
+    }
+
+    function atualizarCoeficiente(indiceLinha, indiceColuna, valor) {
+      const numero = Number(valor);
+
+      matrix.value[indiceLinha].valores[indiceColuna] =
+        Number.isFinite(numero) && numero >= 0
+          ? numero
+          : 0;
+
+      resultadoDashboard.value = null;
+    }
+
+    function atualizarDemandaLinha(indice, valor) {
+      const numero = Number(valor);
+
+      const demandaValida =
+        Number.isFinite(numero) && numero >= 0
+          ? numero
+          : 0;
+
+      matrix.value[indice].demanda = demandaValida;
+
+      const idSetor = matrix.value[indice].id;
+
+      demanda.value[idSetor] = demandaValida;
+      resultadoDashboard.value = null;
+    }
+
 
     async function api(caminho, opcoes = {}) {
       const headers = { 'Content-Type': 'application/json' };
@@ -1538,46 +1942,120 @@ createApp({
           throw new Error('Sessão expirada. Entre de novo.');
         }
         const msg = dados && (dados.erro || dados.error || dados.mensagem || dados.message);
-        throw new Error(msg || 'Erro ' + resp.status);
+        const falha = new Error(msg || 'Erro ' + resp.status);
+        falha.codigo = dados && dados.codigo;
+        throw falha;
       }
       return dados;
     }
 
-    async function carregarSetores() {
-      const d = await api('/api/setores');
-      setores.value = Array.isArray(d) ? d : (Object.values(d || {}).find(Array.isArray) || []);
+    async function carregarDadosCalculo() {
+      const [dadosSetores, dadosCoeficientes] = await Promise.all([
+        api('/api/setores'),
+        api('/api/coeficientes?ano=' + encodeURIComponent(ano.value))
+      ]);
+
+      setores.value = Array.isArray(dadosSetores)
+        ? dadosSetores
+        : (Object.values(dadosSetores || {}).find(Array.isArray) || []);
+
+      coeficientes.value = Array.isArray(dadosCoeficientes)
+        ? dadosCoeficientes
+        : (Object.values(dadosCoeficientes || {}).find(Array.isArray) || []);
+
+      if (!coeficientes.value.length) {
+        matrix.value = [];
+        matrixCols.value = [];
+
+        throw new Error(
+          `Não há coeficientes cadastrados para o ano ${ano.value}.`
+        );
+      }
+
+      montarMatrizReal();
+    }
+    
+    function montarMatrizReal() {
+      resultadoDashboard.value = null;
+      if (!setores.value.length) {
+        matrixCols.value = [];
+        matrix.value = [];
+        return;
+      }
+
+      matrixCols.value = setores.value.map(
+        setor => setor[nomeKey.value]
+      );
+
+      matrix.value = setores.value.map(setorOrigem => {
+        const idOrigem = setorOrigem[idKey.value];
+
+        const valores = setores.value.map(setorDestino => {
+          const idDestino = setorDestino[idKey.value];
+
+          const coeficiente = coeficientes.value.find(c =>
+            String(c.id_setor_origem) === String(idOrigem) &&
+            String(c.id_setor_destino) === String(idDestino)
+          );
+
+          return coeficiente
+            ? Number(coeficiente.coeficiente_tecnico)
+            : 0;
+        });
+
+        return {
+          id: idOrigem,
+          nome: setorOrigem[nomeKey.value],
+          demanda: Number(demanda.value[idOrigem] || 0),
+          valores
+        };
+      });
     }
 
     async function entrar() {
       erro.value = '';
+      mensagemVerificacao.value = '';
+      linkVerificacaoDemo.value = '';
+      precisaVerificar.value = false;
       carregando.value = true;
+
       try {
         const d = await api('/api/auth/login', {
           method: 'POST',
-          body: JSON.stringify({ email: email.value.trim(), senha: senha.value })
+          body: JSON.stringify({
+            email: email.value.trim(),
+            senha: senha.value
+          })
         });
+
         token.value = d.token;
         sessionStorage.setItem('eco_token', d.token);
         senha.value = '';
-        await carregarSetores();
+
+        try {
+          await carregarDadosCalculo();
+        } catch (e) {
+          // A autenticação funcionou. Apenas os dados de cálculo não puderam ser carregados.
+          erro.value = e.message;
+        }
       } catch (e) {
         erro.value = e.message;
+        precisaVerificar.value =
+          e.codigo === 'EMAIL_NAO_VERIFICADO';
       } finally {
         carregando.value = false;
       }
     }
-
     async function cadastrar() {
       erro.value = '';
       carregando.value = true;
 
       try {
-        await api('/api/usuario', {
+        const emailCadastrado = cadastro.value.email.trim().toLowerCase();
+        const r = await api('/api/usuario', {
           method: 'POST',
           body: JSON.stringify(cadastro.value)
         });
-
-        alert('Usuário criado com sucesso. Faça login para continuar.');
 
         cadastro.value = {
           nome: '',
@@ -1586,13 +2064,129 @@ createApp({
           perfil: 'STAKEHOLDER'
         };
 
-        modo.value = 'login';
+        if (r && r.verificacao_pendente) {
+          // o servidor exige confirmar o e-mail: mostra a tela de espera
+          emailPendente.value = emailCadastrado;
+          mensagemVerificacao.value = r.message || '';
+          linkVerificacaoDemo.value = r.link || '';
+          modo.value = 'aguardando';
+        } else {
+          alert('Usuário criado com sucesso. Faça login para continuar.');
+          modo.value = 'login';
+        }
 
       } catch (e) {
         erro.value = e.message;
       } finally {
         carregando.value = false;
       }
+    }
+
+    // pede um novo link de confirmação (a resposta do servidor é sempre a mesma, exista o e-mail ou não)
+    async function reenviarVerificacao(alvo) {
+      erro.value = '';
+      mensagemVerificacao.value = '';
+      linkVerificacaoDemo.value = '';
+      const emailAlvo = String(alvo || '').trim();
+      if (!emailAlvo) { erro.value = 'Informe o e-mail.'; return; }
+      carregando.value = true;
+      try {
+        const r = await api('/api/auth/reenviar-verificacao', {
+          method: 'POST',
+          body: JSON.stringify({ email: emailAlvo })
+        });
+        mensagemVerificacao.value = r.message;
+        linkVerificacaoDemo.value = r.link || '';
+        precisaVerificar.value = false;
+      } catch (e) {
+        erro.value = e.message;
+      } finally {
+        carregando.value = false;
+      }
+    }
+
+    // chamada quando o usuário abre o link do e-mail: login.html?verificar=...
+    async function confirmarEmail(t) {
+      verificacaoEstado.value = 'verificando';
+      try {
+        const r = await api('/api/auth/verificar-email', {
+          method: 'POST',
+          body: JSON.stringify({ token: t })
+        });
+        mensagemVerificacao.value = r.message;
+        verificacaoEstado.value = 'ok';
+      } catch (e) {
+        mensagemVerificacao.value = e.message;
+        verificacaoEstado.value = 'erro';
+      }
+    }
+
+    // ---------- Minha conta ----------
+    function avisarConta(secao, ok, texto, link = '') {
+      contaAviso.value = { secao, ok, texto, link };
+    }
+
+    // roda uma ação da aba; mostra o erro na seção certa
+    async function acaoConta(secao, fn) {
+      contaOcupada.value = true;
+      avisarConta('', true, '');
+      try { await fn(); }
+      catch (e) { avisarConta(secao, false, e.message); }
+      finally { contaOcupada.value = false; }
+    }
+
+    async function abrirConta() {
+      aba.value = 'conta';
+      erro.value = '';
+      avisarConta('', true, '');
+      try {
+        conta.value = await api('/api/me');
+        contaForm.value.nome = conta.value.nome;
+      } catch (e) {
+        erro.value = e.message;
+      }
+    }
+
+    const salvarNome = () => acaoConta('nome', async () => {
+      const r = await api('/api/me', { method: 'PUT', body: JSON.stringify({ nome: contaForm.value.nome }) });
+      conta.value = { ...conta.value, ...r.usuario };
+      contaForm.value.nome = conta.value.nome;
+      avisarConta('nome', true, r.message);
+    });
+
+    const pedirTrocaEmail = () => acaoConta('email', async () => {
+      const r = await api('/api/me/email', {
+        method: 'POST',
+        body: JSON.stringify({ novo_email: contaForm.value.novoEmail, senha: contaForm.value.senhaEmail })
+      });
+      conta.value = { ...conta.value, email_pendente: r.email_pendente };
+      contaForm.value.novoEmail = '';
+      contaForm.value.senhaEmail = '';
+      avisarConta('email', true, r.message, r.link || '');
+    });
+
+    const trocarSenha = () => acaoConta('senha', async () => {
+      const r = await api('/api/me/senha', {
+        method: 'PUT',
+        body: JSON.stringify({ senha_atual: contaForm.value.senhaAtual, nova_senha: contaForm.value.novaSenha })
+      });
+      contaForm.value.senhaAtual = '';
+      contaForm.value.novaSenha = '';
+      avisarConta('senha', true, r.message);
+    });
+
+    const excluirConta = () => acaoConta('excluir', async () => {
+      const r = await api('/api/me', { method: 'DELETE', body: JSON.stringify({ senha: contaForm.value.senhaExcluir }) });
+      sair();                                  // encerra a sessão e limpa os dados da tela
+      mensagemVerificacao.value = r.message;   // aparece na tela de login
+    });
+
+
+    function irParaLogin() {
+      erro.value = '';
+      linkVerificacaoDemo.value = '';
+      if (verificacaoEstado.value !== 'ok') mensagemVerificacao.value = '';
+      modo.value = 'login';
     }
 
     async function solicitarRecuperacao() {
@@ -1646,9 +2240,14 @@ createApp({
     async function recarregar() {
       erro.value = '';
       carregando.value = true;
-      try { await carregarSetores(); }
-      catch (e) { erro.value = e.message; }
-      finally { carregando.value = false; }
+
+      try {
+        await carregarDadosCalculo();
+      } catch (e) {
+        erro.value = e.message;
+      } finally {
+        carregando.value = false;
+      }
     }
 
     function nomeDoSetor(id) {
@@ -1656,30 +2255,120 @@ createApp({
       return s ? s[nomeKey.value] : 'Setor ' + id;
     }
 
-    async function calcular() {
-      erro.value = '';
-      const dem = {};
-      for (const [id, v] of Object.entries(demanda.value)) {
-        if (v !== '' && v !== null && v !== undefined) dem[id] = Number(v);
-      }
-      if (!Object.keys(dem).length) {
-        erro.value = 'Informe a demanda de pelo menos um setor.';
-        return;
-      }
+
+    async function simularMatrizDashboard() {
+      erroMatriz.value = '';
+      resultadoDashboard.value = null;
       carregando.value = true;
+
       try {
-        resultado.value = await api('/api/calculate-equilibrium', {
-          method: 'POST',
-          body: JSON.stringify({ ano: ano.value, demanda: dem })
+        if (!matrix.value.length) {
+          throw new Error('A matriz ainda não foi carregada.');
+        }
+
+        const matriz = matrix.value.map((linha, i) =>
+          linha.valores.map((valor, j) => {
+            const numero = Number(valor);
+
+            if (!Number.isFinite(numero) || numero < 0) {
+              throw new Error(
+                `Coeficiente inválido na linha ${i + 1}, coluna ${j + 1}.`
+              );
+            }
+
+            return numero;
+          })
+        );
+
+        const vetorDemanda = matrix.value.map((linha, i) => {
+          const numero = Number(linha.demanda);
+
+          if (!Number.isFinite(numero) || numero < 0) {
+            throw new Error(
+              `Demanda inválida no setor ${linha.nome || i + 1}.`
+            );
+          }
+
+          return numero;
         });
+
+        if (!vetorDemanda.some(valor => valor > 0)) {
+          throw new Error(
+            'Informe uma demanda maior que zero em pelo menos um setor.'
+          );
+        }
+
+        const resposta = await api('/api/calculate-preview', {
+          method: 'POST',
+          body: JSON.stringify({
+            matriz,
+            demanda: vetorDemanda
+          })
+        });
+
+        resultadoDashboard.value = {
+          producao_total: resposta.producao_total,
+          raio_espectral: resposta.raio_espectral
+        };
       } catch (e) {
-        erro.value = e.message;
-        resultado.value = null;
+        erroMatriz.value = e.message;
       } finally {
         carregando.value = false;
       }
     }
 
+
+   async function calcular() {
+    erro.value = '';
+    resultado.value = null;
+
+    const dem = {};
+
+    for (const [id, v] of Object.entries(demanda.value)) {
+      // Campo vazio é tratado como demanda zero.
+      if (v === '' || v === null || v === undefined) {
+        continue;
+      }
+
+      const numero = Number(v);
+
+      // Impede NaN, Infinity, valores negativos e textos inválidos.
+      if (!Number.isFinite(numero) || numero < 0) {
+        erro.value =
+          `A demanda do setor ${nomeDoSetor(id)} deve ser um número maior ou igual a zero.`;
+        return;
+      }
+
+      dem[id] = numero;
+    }
+
+    // Exige pelo menos uma demanda positiva.
+    if (
+      !Object.keys(dem).length ||
+      !Object.values(dem).some(valor => valor > 0)
+    ) {
+      erro.value =
+        'Informe uma demanda maior que zero em pelo menos um setor.';
+      return;
+    }
+
+    carregando.value = true;
+
+    try {
+      resultado.value = await api('/api/calculate-equilibrium', {
+        method: 'POST',
+        body: JSON.stringify({
+          ano: ano.value,
+          demanda: dem
+        })
+      });
+    } catch (e) {
+      erro.value = e.message;
+      resultado.value = null;
+    } finally {
+      carregando.value = false;
+    }
+  }
     const fmtData = (d) => (d ? new Date(d).toLocaleString('pt-BR') : '');
     const corStatus = (st) => ({
       PENDENTE: 'bg-yellow-900/50 text-yellow-300',
@@ -1704,6 +2393,18 @@ createApp({
     async function abrirLogs() {
       aba.value = 'logs';
       await recarregarLogs();
+    }
+
+    function abrirDashboard() {
+      erro.value = '';
+
+      matrix.value.forEach(linha => {
+        linha.demanda = Number(
+          demanda.value[linha.id] ?? linha.demanda ?? 0
+        );
+      });
+
+      aba.value = 'dashboard';
     }
 
     async function verificarCadeia() {
@@ -1733,6 +2434,22 @@ createApp({
       }
     }
 
+    async function alterarAnoCalculo() {
+      erro.value = '';
+      resultado.value = null;
+      resultadoDashboard.value = null;
+
+      if (
+        !Number.isInteger(Number(ano.value)) ||
+        Number(ano.value) <= 0
+      ) {
+        erro.value = 'Informe um ano de referência válido.';
+        return;
+      }
+
+      await recarregar();
+    }
+
     function sair() {
       token.value = '';
       sessionStorage.removeItem('eco_token');
@@ -1743,11 +2460,40 @@ createApp({
       logs.value = [];
       filtro.value = '';
       verificacao.value = null;
+
+      resultadoDashboard.value = null;
+      coeficientes.value = [];
+      matrix.value = [];
+      matrixCols.value = [];
+
+      conta.value = null;
+
+      contaForm.value = contaVazia();
+
+      contaAviso.value = {
+        secao: '',
+        ok: true,
+        texto: '',
+        link: ''
+      };
+
     }
 
     onMounted(() => {
+      const params = new URLSearchParams(location.search);
+
+      // link de confirmação de e-mail: login.html?verificar=...
+      const v = params.get('verificar');
+      if (v) {
+        if (token.value) sair(); // encerra sessão aberta para mostrar a tela
+        modo.value = 'verificar';
+        history.replaceState(null, '', location.pathname); // tira o token da URL
+        confirmarEmail(v);
+        return;
+      }
+
       // link de redefinição: login.html?token=...
-      const t = new URLSearchParams(location.search).get('token');
+      const t = params.get('token');
       if (t) {
         if (token.value) sair(); // encerra sessão aberta para mostrar a tela
         tokenReset.value = t;
@@ -1758,13 +2504,38 @@ createApp({
       if (token.value) recarregar();
     });
 
-    return { email, senha, carregando, erro, setores, colunas, logado, perfil, entrar, recarregar, sair, 
-             modo, cadastro, cadastrar, simulacao, roiEstimado, payback, co2Reduzido,
-             matrix, matrixCols, producaoTotal, resetMatrix, exportarPDF, resultadoSetores, nivelESG, diagnostico,
-             emailRecuperacao,mensagemRecuperacao, solicitarRecuperacao, linkDemo, novaSenha, confirmaSenha, redefinida, mensagemRedefinicao, redefinirSenha, aba, ano, demanda, 
-             resultado, ehAnalista, idKey, nomeKey, calcular, nomeDoSetor,
-             logs, filtro, verificacao, ehAuditor, podeVerificar, fmtData, corStatus,
-             recarregarLogs, abrirLogs, verificarCadeia, decidir };
+   return {
+            email, senha, carregando, erro, setores, colunas, logado, perfil, entrar, recarregar, sair,
+
+            modo, cadastro, cadastrar, simulacao, roiEstimado, payback, co2Reduzido,
+
+            matrix, matrixCols, producaoTotal, resetMatrix, atualizarDemandaLinha, abrirDashboard, exportarPDF, resultadoSetores, nivelESG, diagnostico,
+
+            resultadoDashboard, simularMatrizDashboard, abrirCalculoOficial, atualizarCoeficiente,
+           
+            alterarAnoCalculo, erroMatriz,
+
+            conta,
+            contaForm,
+            contaAviso,
+            contaOcupada,
+
+            abrirConta,
+            salvarNome,
+            pedirTrocaEmail,
+            trocarSenha,
+            excluirConta,
+
+            emailRecuperacao, mensagemRecuperacao, solicitarRecuperacao, linkDemo, novaSenha, confirmaSenha, redefinida, mensagemRedefinicao, redefinirSenha,
+
+            aba, ano, demanda, resultado, ehAnalista, idKey, nomeKey, calcular, nomeDoSetor,
+
+            logs, filtro, verificacao, ehAuditor, podeVerificar, fmtData, corStatus, recarregarLogs, abrirLogs, verificarCadeia, decidir,
+
+            scoreESG, esgGrafico, ESG_LIMITES, ESG_FAIXAS,
+
+            emailPendente, mensagemVerificacao, linkVerificacaoDemo, precisaVerificar, verificacaoEstado, reenviarVerificacao, irParaLogin
+          };
   }
 }).mount('#painel');
 </script>
